@@ -5,7 +5,7 @@
   "description": "Track recurring seasonal events — first frost, first blooms, first robin — and watch patterns emerge year over year.",
   "entrypoint": "index.html",
   "runtime": "static",
-  "category": "nature",
+  "category": "general",
   "tags": ["nature", "seasons", "garden", "outdoor", "tracking"],
   "data_access": {
     "reads": ["family.members"],
