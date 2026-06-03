@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Almanac Widget</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--hub-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-size: 13px;
+      background: #fff;
+      color: #111827;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      flex-shrink: 0;
+    }
+    .header-title { font-weight: 600; font-size: 13px; }
+    .header-sub { font-size: 11px; color: #6b7280; }
+
+    .list { flex: 1; overflow-y: auto; }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-bottom: 1px solid #f3f4f6;
+      cursor: pointer;
+    }
+    .row:last-child { border-bottom: none; }
+    .row:hover { background: #f9fafb; }
+
+    .row-icon { font-size: 16px; flex-shrink: 0; line-height: 1; }
+    .row-info { flex: 1; min-width: 0; }
+    .row-name { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-date { font-size: 11px; color: #6b7280; margin-top: 1px; }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .badge-soon { background: #fef3c7; color: #92400e; }
+    .badge-today { background: #dcfce7; color: #166534; }
+    .badge-logged { background: #f0fdf4; color: #16a34a; }
+
+    .footer {
+      padding: 6px 14px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-shrink: 0;
+      background: #f9fafb;
+    }
+    .open-link { font-size: 11px; font-weight: 600; color: #111827; text-decoration: none; }
+    .open-link:hover { text-decoration: underline; }
+
+    .empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      font-size: 12px;
+      gap: 6px;
+      padding: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<script type="module">
+const DB     = window.__DB_URL ?? "";
+const APP_ID = "almanac";
+
+function esc(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+async function dbq(sql, params = []) {
+  if (!DB) return { rows: [] };
+  const res = await fetch(DB, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql, params }),
+  });
+  return res.json();
+}
+
+function dayOfYear(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const start = Date.UTC(y, 0, 1);
+  const date  = Date.UTC(y, m - 1, d);
+  return Math.floor((date - start) / 86400000) + 1;
+}
+
+function dayOfYearToDate(doy, year) {
+  return new Date(year, 0, doy).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function daysUntilDoy(doy) {
+  const today    = new Date();
+  const todayDoy = dayOfYear(
+    `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`
+  );
+  let diff = doy - todayDoy;
+  if (diff < 0) diff += 365;
+  return diff;
+}
+
+function openApp(eventTypeId) {
+  if (window.__HUB_OPEN) {
+    window.parent.postMessage({ type: "hub:open", appId: APP_ID, params: { eventTypeId } }, "*");
+  } else {
+    window.open(`/open/${APP_ID}?eventTypeId=${encodeURIComponent(eventTypeId)}`, "_blank");
+  }
+}
+
+async function load() {
+  const yr = new Date().getFullYear();
+
+  const [{ rows: eventTypes }, { rows: avgs }, { rows: thisYrLogged }] = await Promise.all([
+    dbq(`SELECT id, name, icon FROM event_types WHERE archived_at IS NULL`),
+    dbq(`SELECT event_type_id, AVG(day_of_year) AS avg_doy, COUNT(*) AS total
+         FROM observations GROUP BY event_type_id`),
+    dbq(`SELECT DISTINCT event_type_id FROM observations WHERE year = ?`, [yr]),
+  ]);
+
+  const avgMap    = Object.fromEntries(avgs.map(r => [r.event_type_id, { avgDoy: Math.round(r.avg_doy), total: r.total }]));
+  const loggedSet = new Set(thisYrLogged.map(r => r.event_type_id));
+
+  const WINDOW = 60;
+  const upcoming = eventTypes
+    .map(et => {
+      const info = avgMap[et.id];
+      if (!info) return null;
+      const until = daysUntilDoy(info.avgDoy);
+      if (until > WINDOW) return null;
+      return { ...et, avgDoy: info.avgDoy, daysUntil: until, loggedThisYear: loggedSet.has(et.id) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.daysUntil - b.daysUntil);
+
+  if (upcoming.length === 0) {
+    document.body.innerHTML = `
+      <div class="header">
+        <span class="header-title">📅 Almanac</span>
+        <span class="header-sub">Coming up</span>
+      </div>
+      <div class="empty">Nothing expected in the next ${WINDOW} days based on history</div>
+      <div class="footer">
+        <a class="open-link" href="/open/${APP_ID}" onclick="window.__HUB_OPEN&&(event.preventDefault(),window.__HUB_OPEN('${APP_ID}'))">Open Almanac →</a>
+      </div>`;
+    return;
+  }
+
+  const rows = upcoming.map(et => {
+    let badge;
+    if (et.loggedThisYear) {
+      badge = `<span class="badge badge-logged">✓ logged</span>`;
+    } else if (et.daysUntil === 0) {
+      badge = `<span class="badge badge-today">today</span>`;
+    } else {
+      badge = `<span class="badge badge-soon">in ${et.daysUntil}d</span>`;
+    }
+    const dateStr = dayOfYearToDate(et.avgDoy, new Date().getFullYear());
+    return `
+      <div class="row" onclick="openApp('${esc(et.id)}')">
+        <span class="row-icon">${esc(et.icon)}</span>
+        <div class="row-info">
+          <div class="row-name">${esc(et.name)}</div>
+          <div class="row-date">Usually around ${esc(dateStr)}</div>
+        </div>
+        ${badge}
+      </div>`;
+  }).join("");
+
+  document.body.innerHTML = `
+    <div class="header">
+      <span class="header-title">📅 Almanac</span>
+      <span class="header-sub">Coming up</span>
+    </div>
+    <div class="list">${rows}</div>
+    <div class="footer">
+      <a class="open-link" href="/open/${APP_ID}" onclick="window.__HUB_OPEN&&(event.preventDefault(),window.__HUB_OPEN('${APP_ID}'))">Open Almanac →</a>
+    </div>`;
+}
+
+load().catch(() => {
+  document.body.innerHTML = `<div class="empty"><a href="/open/${APP_ID}" style="color:#111827;font-weight:600">Open Almanac →</a></div>`;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <base href="/run/almanac/" />
+  <title>Almanac</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--hub-font, system-ui, sans-serif);
+      font-size: var(--hub-font-size, 15px);
+      background: var(--hub-bg, #f9fafb);
+      color: var(--hub-text, #111827);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 0;
+    }
+    .app-header h1 { font-size: 1.25rem; font-weight: 700; }
+    .btn-gear {
+      background: none;
+      border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 6px);
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--hub-text-muted, #6b7280);
+      line-height: 1;
+    }
+    .btn-gear:hover { background: var(--hub-surface, #fff); color: var(--hub-text, #111827); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 12px 20px 0;
+      border-bottom: 1px solid var(--hub-border, #e5e7eb);
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--hub-text-muted, #6b7280);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      font-family: inherit;
+      border-radius: var(--hub-radius, 6px) var(--hub-radius, 6px) 0 0;
+    }
+    .tab-btn.active {
+      color: var(--hub-primary, #6366f1);
+      border-bottom-color: var(--hub-primary, #6366f1);
+      font-weight: 600;
+    }
+    .tab-btn:hover:not(.active) { color: var(--hub-text, #111827); }
+
+    .tab-panel { display: none; padding: 20px; }
+    .tab-panel.active { display: block; }
+
+    /* ── Event cards ── */
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .event-card {
+      background: var(--hub-surface, #fff);
+      border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 8px);
+      padding: 16px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: box-shadow .15s;
+    }
+    .event-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
+    .card-name { font-weight: 600; flex: 1; }
+    .btn-log {
+      background: var(--hub-primary, #6366f1);
+      color: var(--hub-primary-fg, #fff);
+      border: none;
+      border-radius: var(--hub-radius, 6px);
+      width: 28px;
+      height: 28px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .btn-log:hover { background: var(--hub-primary-hover, #4f46e5); }
+
+    .card-this-year {
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .card-this-year.logged { color: #166534; background: #dcfce7; }
+    .card-this-year.pending { color: var(--hub-text-muted, #6b7280); background: var(--hub-bg, #f9fafb); }
+
+    .card-prev-year, .card-count {
+      font-size: 0.8rem;
+      color: var(--hub-text-muted, #6b7280);
+    }
+
+    /* ── History tab ── */
+    .history-year { margin-bottom: 24px; }
+    .year-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--hub-text-muted, #6b7280);
+      margin-bottom: 8px;
+    }
+    .history-rows {
+      background: var(--hub-surface, #fff);
+      border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 8px);
+      overflow: hidden;
+    }
+    .history-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--hub-border, #e5e7eb);
+    }
+    .history-row:last-child { border-bottom: none; }
+    .hist-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .hist-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .hist-name { font-weight: 500; font-size: 0.9rem; }
+    .hist-date { font-size: 0.85rem; color: var(--hub-text-muted, #6b7280); }
+    .hist-notes { font-size: 0.8rem; color: var(--hub-text-muted, #6b7280); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .hist-who { font-size: 0.8rem; color: var(--hub-text-muted, #6b7280); }
+
+    /* ── Modals ── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal {
+      background: var(--hub-surface, #fff);
+      border-radius: var(--hub-radius, 10px);
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    }
+    .modal-wide { max-width: 720px; }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 20px 20px 0;
+    }
+    .modal-icon { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; }
+    .modal-subtitle { font-size: 0.85rem; color: var(--hub-text-muted, #6b7280); margin-top: 2px; }
+    .btn-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--hub-text-muted, #6b7280);
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .btn-close:hover { background: var(--hub-bg, #f9fafb); color: var(--hub-text, #111827); }
+
+    /* ── Detail modal ── */
+    .detail-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      padding: 16px 20px 0;
+    }
+    .stat {
+      flex: 1;
+      min-width: 80px;
+      background: var(--hub-bg, #f9fafb);
+      border-radius: 6px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.05rem; font-weight: 700; }
+    .stat-label { font-size: 0.75rem; color: var(--hub-text-muted, #6b7280); margin-top: 2px; }
+
+    .modal-actions-top { padding: 14px 20px 0; }
+
+    .detail-history { padding: 16px 20px 20px; }
+    .detail-history h3 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--hub-text-muted, #6b7280); margin-bottom: 10px; }
+
+    .obs-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .obs-table th {
+      text-align: left;
+      padding: 6px 8px;
+      color: var(--hub-text-muted, #6b7280);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      border-bottom: 1px solid var(--hub-border, #e5e7eb);
+    }
+    .obs-table td {
+      padding: 8px 8px;
+      border-bottom: 1px solid var(--hub-border, #e5e7eb);
+      vertical-align: top;
+    }
+    .obs-table tr:last-child td { border-bottom: none; }
+    .notes-cell { color: var(--hub-text-muted, #6b7280); font-style: italic; max-width: 160px; }
+
+    .avg-diff { font-size: 0.8rem; font-weight: 500; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+    .avg-diff.earlier { color: #166534; background: #dcfce7; }
+    .avg-diff.later   { color: #92400e; background: #fef3c7; }
+    .avg-exact        { font-size: 0.8rem; color: var(--hub-text-muted, #6b7280); }
+
+    .timeline-wrap {
+      margin: 4px 0 16px;
+      padding: 12px;
+      background: var(--hub-bg, #f9fafb);
+      border-radius: 6px;
+    }
+    .timeline-label { font-size: 0.75rem; color: var(--hub-text-muted, #6b7280); margin-bottom: 8px; }
+    .timeline-bar {
+      position: relative;
+      height: 8px;
+      background: var(--hub-border, #e5e7eb);
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+    .timeline-avg {
+      position: absolute;
+      top: -4px;
+      width: 2px;
+      height: 16px;
+      background: var(--hub-primary, #6366f1);
+      border-radius: 1px;
+    }
+    .timeline-dot {
+      position: absolute;
+      top: 0;
+      width: 8px;
+      height: 8px;
+      background: var(--hub-text-muted, #6b7280);
+      border-radius: 50%;
+      transform: translateX(-50%);
+    }
+    .timeline-dot.this-year { background: var(--hub-primary, #6366f1); }
+    .timeline-ends { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--hub-text-muted, #6b7280); }
+
+    .detail-empty { color: var(--hub-text-muted, #6b7280); font-size: 0.9rem; padding: 12px 0; }
+
+    /* ── Manage modal ── */
+    .manage-list { padding: 16px 20px 0; display: flex; flex-direction: column; gap: 2px; }
+    .manage-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--hub-bg, #f9fafb);
+      border-radius: var(--hub-radius, 6px);
+    }
+    .manage-icon { font-size: 1.2rem; }
+    .manage-name { flex: 1; font-weight: 500; }
+    .manage-actions { display: flex; gap: 6px; }
+    .manage-empty { color: var(--hub-text-muted, #6b7280); font-size: 0.9rem; }
+
+    /* ── Forms ── */
+    .form-body { padding: 16px 20px 0; display: flex; flex-direction: column; gap: 14px; }
+    .form-label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: -8px; }
+    .optional { font-weight: 400; color: var(--hub-text-muted, #6b7280); }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 6px);
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: var(--hub-surface, #fff);
+      color: var(--hub-text, #111827);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: 2px solid var(--hub-primary, #6366f1);
+      outline-offset: -1px;
+      border-color: transparent;
+    }
+    .form-textarea { resize: vertical; }
+    .emoji-input { font-size: 1.3rem; text-align: center; max-width: 80px; }
+
+    /* ── Buttons ── */
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 16px 20px 20px;
+    }
+    .btn-primary {
+      background: var(--hub-primary, #6366f1);
+      color: var(--hub-primary-fg, #fff);
+      border: none;
+      border-radius: var(--hub-radius, 6px);
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--hub-primary-hover, #4f46e5); }
+    .btn-primary:disabled { opacity: .6; cursor: default; }
+    .btn-secondary {
+      background: var(--hub-bg, #f9fafb);
+      color: var(--hub-text, #111827);
+      border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 6px);
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-secondary:hover { background: var(--hub-border, #e5e7eb); }
+    .btn-icon-sm {
+      background: none;
+      border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: 4px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--hub-text-muted, #6b7280);
+      padding: 0;
+    }
+    .btn-icon-sm:hover { background: var(--hub-bg, #f9fafb); color: var(--hub-text, #111827); }
+    .btn-icon-sm.danger:hover { color: #dc2626; border-color: #dc2626; }
+
+    /* ── Empty states ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 60px 24px;
+      gap: 10px;
+      color: var(--hub-text-muted, #6b7280);
+    }
+    .empty-icon { font-size: 2.5rem; }
+    .empty-title { font-size: 1rem; font-weight: 600; color: var(--hub-text, #111827); }
+    .empty-sub { font-size: 0.88rem; max-width: 320px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>📅 Almanac</h1>
+  <button class="btn-gear" onclick="window.openManageModal()" title="Manage event types">⚙</button>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="events" onclick="setTab('events')">Events</button>
+  <button class="tab-btn" data-tab="history" onclick="setTab('history')">History</button>
+</div>
+
+<div id="panel-events" class="tab-panel active"></div>
+<div id="panel-history" class="tab-panel"></div>
+
+<script type="module">
+import { esc, memberColor, initial, hubConfirm } from "/hub-sdk.js";
+import {
+  dayOfYear, dayOfYearToDate, formatDate,
+  averageDayOfYear, compareToAverage,
+  thisYear, todayStr,
+} from "./logic.js";
+
+const DB      = window.__DB_URL      ?? "";
+const CONTEXT = window.__CONTEXT_URL ?? "";
+const APP_ID  = "almanac";
+const ME      = window.__CURRENT_MEMBER ?? null;
+
+let members    = [];
+let eventTypes = [];
+let observations = [];
+let activeTab  = "events";
+
+// Track which panels need a rebuild; skip re-rendering unchanged tabs
+const dirtyPanels = new Set(["events", "history"]);
+function markDirty() { dirtyPanels.add("events"); dirtyPanels.add("history"); }
+
+async function db(sql, params = []) {
+  if (!DB) return { rows: [] };
+  const res = await fetch(DB, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql, params }),
+  });
+  return res.json();
+}
+
+async function loadMembers() {
+  if (!CONTEXT) {
+    members = [
+      { id: "demo-1", name: "Alex", role: "adult" },
+      { id: "demo-2", name: "Sam",  role: "adult" },
+    ];
+    return;
+  }
+  try {
+    const res = await fetch(`${CONTEXT}?keys=family.members`);
+    members = ((await res.json())["family.members"]) ?? [];
+  } catch { members = []; }
+}
+
+async function loadData() {
+  if (!DB) {
+    seedDemo();
+    markDirty();
+    return;
+  }
+  const [{ rows: et }, { rows: obs }] = await Promise.all([
+    db(`SELECT id, name, icon, description, created_by, created_at, archived_at
+        FROM event_types WHERE archived_at IS NULL ORDER BY name ASC`),
+    db(`SELECT id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at
+        FROM observations ORDER BY observed_date DESC`),
+  ]);
+  eventTypes   = et;
+  observations = obs;
+  markDirty();
+}
+
+function seedDemo() {
+  const yr = thisYear();
+  eventTypes = [
+    { id: "et-1", name: "First Frost",          icon: "❄️",  description: "First hard frost of autumn",       created_by: "demo-1", created_at: `${yr-4}-01-01`, archived_at: null },
+    { id: "et-2", name: "Cherry Blossoms",       icon: "🌸",  description: "Cherry trees fully in bloom",      created_by: "demo-1", created_at: `${yr-4}-01-01`, archived_at: null },
+    { id: "et-3", name: "Last Frost",            icon: "🌡️", description: "Last killing frost of spring",     created_by: "demo-1", created_at: `${yr-4}-01-01`, archived_at: null },
+    { id: "et-4", name: "First Firefly",         icon: "✨",  description: "First firefly sighting of summer", created_by: "demo-2", created_at: `${yr-3}-01-01`, archived_at: null },
+    { id: "et-5", name: "First Leaves Turning",  icon: "🍂",  description: "First autumn color in the trees",  created_by: "demo-1", created_at: `${yr-4}-01-01`, archived_at: null },
+  ];
+  observations = [
+    // First Frost (avg ~Oct 30, doy ~303)
+    { id:"o-1",  event_type_id:"et-1", observed_date:`${yr-4}-10-28`, year:yr-4, day_of_year:dayOfYear(`${yr-4}-10-28`), notes:"",                  logged_by:"demo-1", created_at:`${yr-4}-10-28T00:00:00Z` },
+    { id:"o-2",  event_type_id:"et-1", observed_date:`${yr-3}-11-03`, year:yr-3, day_of_year:dayOfYear(`${yr-3}-11-03`), notes:"Early this year",    logged_by:"demo-1", created_at:`${yr-3}-11-03T00:00:00Z` },
+    { id:"o-3",  event_type_id:"et-1", observed_date:`${yr-2}-10-25`, year:yr-2, day_of_year:dayOfYear(`${yr-2}-10-25`), notes:"",                  logged_by:"demo-2", created_at:`${yr-2}-10-25T00:00:00Z` },
+    { id:"o-4",  event_type_id:"et-1", observed_date:`${yr-1}-10-31`, year:yr-1, day_of_year:dayOfYear(`${yr-1}-10-31`), notes:"Halloween frost!",  logged_by:"demo-1", created_at:`${yr-1}-10-31T00:00:00Z` },
+    // Cherry Blossoms (avg ~Apr 11, doy ~101)
+    { id:"o-5",  event_type_id:"et-2", observed_date:`${yr-4}-04-12`, year:yr-4, day_of_year:dayOfYear(`${yr-4}-04-12`), notes:"",                  logged_by:"demo-1", created_at:`${yr-4}-04-12T00:00:00Z` },
+    { id:"o-6",  event_type_id:"et-2", observed_date:`${yr-3}-04-08`, year:yr-3, day_of_year:dayOfYear(`${yr-3}-04-08`), notes:"Beautiful this year!", logged_by:"demo-2", created_at:`${yr-3}-04-08T00:00:00Z` },
+    { id:"o-7",  event_type_id:"et-2", observed_date:`${yr-2}-04-15`, year:yr-2, day_of_year:dayOfYear(`${yr-2}-04-15`), notes:"",                  logged_by:"demo-1", created_at:`${yr-2}-04-15T00:00:00Z` },
+    { id:"o-8",  event_type_id:"et-2", observed_date:`${yr-1}-04-10`, year:yr-1, day_of_year:dayOfYear(`${yr-1}-04-10`), notes:"Right on time",     logged_by:"demo-1", created_at:`${yr-1}-04-10T00:00:00Z` },
+    { id:"o-9",  event_type_id:"et-2", observed_date:`${yr}-04-10`,   year:yr,   day_of_year:dayOfYear(`${yr}-04-10`),   notes:"",                  logged_by:"demo-1", created_at:`${yr}-04-10T00:00:00Z`   },
+    // Last Frost (avg ~Apr 1, doy ~91)
+    { id:"o-10", event_type_id:"et-3", observed_date:`${yr-4}-04-02`, year:yr-4, day_of_year:dayOfYear(`${yr-4}-04-02`), notes:"",                  logged_by:"demo-1", created_at:`${yr-4}-04-02T00:00:00Z` },
+    { id:"o-11", event_type_id:"et-3", observed_date:`${yr-3}-03-28`, year:yr-3, day_of_year:dayOfYear(`${yr-3}-03-28`), notes:"Surprisingly early", logged_by:"demo-1", created_at:`${yr-3}-03-28T00:00:00Z` },
+    { id:"o-12", event_type_id:"et-3", observed_date:`${yr-2}-04-10`, year:yr-2, day_of_year:dayOfYear(`${yr-2}-04-10`), notes:"Late spring",        logged_by:"demo-2", created_at:`${yr-2}-04-10T00:00:00Z` },
+    { id:"o-13", event_type_id:"et-3", observed_date:`${yr-1}-03-31`, year:yr-1, day_of_year:dayOfYear(`${yr-1}-03-31`), notes:"",                  logged_by:"demo-1", created_at:`${yr-1}-03-31T00:00:00Z` },
+    // First Firefly (avg ~Jun 10, doy ~161)
+    { id:"o-14", event_type_id:"et-4", observed_date:`${yr-3}-06-08`, year:yr-3, day_of_year:dayOfYear(`${yr-3}-06-08`), notes:"",                  logged_by:"demo-2", created_at:`${yr-3}-06-08T00:00:00Z` },
+    { id:"o-15", event_type_id:"et-4", observed_date:`${yr-2}-06-12`, year:yr-2, day_of_year:dayOfYear(`${yr-2}-06-12`), notes:"By the pond",        logged_by:"demo-2", created_at:`${yr-2}-06-12T00:00:00Z` },
+    { id:"o-16", event_type_id:"et-4", observed_date:`${yr-1}-06-09`, year:yr-1, day_of_year:dayOfYear(`${yr-1}-06-09`), notes:"",                  logged_by:"demo-1", created_at:`${yr-1}-06-09T00:00:00Z` },
+    // First Leaves Turning (avg ~Sep 18, doy ~261)
+    { id:"o-17", event_type_id:"et-5", observed_date:`${yr-4}-09-18`, year:yr-4, day_of_year:dayOfYear(`${yr-4}-09-18`), notes:"",                  logged_by:"demo-1", created_at:`${yr-4}-09-18T00:00:00Z` },
+    { id:"o-18", event_type_id:"et-5", observed_date:`${yr-3}-09-22`, year:yr-3, day_of_year:dayOfYear(`${yr-3}-09-22`), notes:"Late start",         logged_by:"demo-1", created_at:`${yr-3}-09-22T00:00:00Z` },
+    { id:"o-19", event_type_id:"et-5", observed_date:`${yr-2}-09-15`, year:yr-2, day_of_year:dayOfYear(`${yr-2}-09-15`), notes:"Early due to drought", logged_by:"demo-2", created_at:`${yr-2}-09-15T00:00:00Z` },
+    { id:"o-20", event_type_id:"et-5", observed_date:`${yr-1}-09-20`, year:yr-1, day_of_year:dayOfYear(`${yr-1}-09-20`), notes:"",                  logged_by:"demo-1", created_at:`${yr-1}-09-20T00:00:00Z` },
+  ];
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────────
+
+window.setTab = function(tab) {
+  activeTab = tab;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === `panel-${tab}`));
+  render();
+};
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+
+function render() {
+  if (activeTab === "events") {
+    if (dirtyPanels.has("events")) { renderEvents(); dirtyPanels.delete("events"); }
+  } else {
+    if (dirtyPanels.has("history")) { renderHistory(); dirtyPanels.delete("history"); }
+  }
+}
+
+function renderEvents() {
+  const yr    = thisYear();
+  const panel = document.getElementById("panel-events");
+
+  if (eventTypes.length === 0) {
+    panel.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">No events tracked yet</div>
+        <div class="empty-sub">Click ⚙ to add your first event — things like "First Frost" or "Roses in Bloom".</div>
+      </div>`;
+    return;
+  }
+
+  // Pre-index observations by event_type_id once instead of O(n) per card
+  const obsByType = new Map();
+  for (const o of observations) {
+    if (!obsByType.has(o.event_type_id)) obsByType.set(o.event_type_id, []);
+    obsByType.get(o.event_type_id).push(o);
+  }
+
+  panel.innerHTML = `<div class="events-grid">${eventTypes.map(et => renderEventCard(et, yr, obsByType)).join("")}</div>`;
+}
+
+function renderEventCard(et, yr, obsByType) {
+  const etObs      = obsByType?.get(et.id) ?? observations.filter(o => o.event_type_id === et.id);
+  const thisYrObs  = etObs.filter(o => o.year === yr);
+  const prevYrObs  = etObs.filter(o => o.year === yr - 1);
+  const avgDoy     = averageDayOfYear(etObs);
+
+  let thisYrHtml;
+  if (thisYrObs.length > 0) {
+    const dates = thisYrObs.map(o => formatDate(o.observed_date)).join(" &amp; ");
+    thisYrHtml = `<div class="card-this-year logged">✓ ${dates}</div>`;
+  } else {
+    thisYrHtml = `<div class="card-this-year pending">Not yet logged this year</div>`;
+  }
+
+  let prevHtml = "";
+  if (prevYrObs.length > 0) {
+    const dates = prevYrObs.map(o => formatDate(o.observed_date)).join(" &amp; ");
+    prevHtml = `<div class="card-prev-year">Last year: ${dates}</div>`;
+  } else if (avgDoy !== null) {
+    prevHtml = `<div class="card-prev-year">Avg: around ${dayOfYearToDate(avgDoy, yr)}</div>`;
+  }
+
+  const total = etObs.length;
+  return `
+    <div class="event-card" onclick="window.openEventDetail('${esc(et.id)}')">
+      <div class="card-header">
+        <span class="card-icon">${esc(et.icon)}</span>
+        <span class="card-name">${esc(et.name)}</span>
+        <button class="btn-log" onclick="event.stopPropagation(); window.openLogModal('${esc(et.id)}')" title="Log observation">＋</button>
+      </div>
+      ${thisYrHtml}
+      ${prevHtml}
+      <div class="card-count">${total} observation${total !== 1 ? "s" : ""} total</div>
+    </div>`;
+}
+
+function renderHistory() {
+  const panel = document.getElementById("panel-history");
+
+  if (observations.length === 0) {
+    panel.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">No observations yet</div>
+        <div class="empty-sub">Log seasonal events from the Events tab to start building your almanac.</div>
+      </div>`;
+    return;
+  }
+
+  // Pre-index once: group observations by year, index eventTypes by id
+  const obsByYear = new Map();
+  for (const o of observations) {
+    if (!obsByYear.has(o.year)) obsByYear.set(o.year, []);
+    obsByYear.get(o.year).push(o);
+  }
+  const etById = new Map(eventTypes.map(e => [e.id, e]));
+  const memberById = new Map(members.map(m => [m.id, m]));
+
+  const years = [...obsByYear.keys()].sort((a, b) => b - a);
+  let html = "";
+
+  for (const yr of years) {
+    const yearObs = obsByYear.get(yr).slice().sort((a, b) => b.observed_date.localeCompare(a.observed_date));
+
+    html += `<div class="history-year"><div class="year-label">${yr}</div><div class="history-rows">`;
+    for (const obs of yearObs) {
+      const et = etById.get(obs.event_type_id);
+      if (!et) continue;
+      const memberName = memberById.get(obs.logged_by)?.name ?? "Someone";
+      html += `
+        <div class="history-row">
+          <span class="hist-icon">${esc(et.icon)}</span>
+          <div class="hist-info">
+            <span class="hist-name">${esc(et.name)}</span>
+            <span class="hist-date">${formatDate(obs.observed_date)}</span>
+            ${obs.notes ? `<span class="hist-notes">${esc(obs.notes)}</span>` : ""}
+          </div>
+          <div class="hist-meta">
+            <span class="hist-who">${esc(memberName)}</span>
+            <button class="btn-icon-sm danger" onclick="window.deleteObservation('${esc(obs.id)}', null)" title="Delete">×</button>
+          </div>
+        </div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  panel.innerHTML = html;
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────────────────
+
+let modalEl = null;
+
+function openModal(html, wide = false) {
+  closeModal();
+  modalEl = document.createElement("div");
+  modalEl.className = "modal-backdrop";
+  modalEl.innerHTML = `<div class="modal${wide ? " modal-wide" : ""}">${html}</div>`;
+  modalEl.addEventListener("click", e => { if (e.target === modalEl) closeModal(); });
+  document.body.appendChild(modalEl);
+}
+
+function closeModal() { modalEl?.remove(); modalEl = null; }
+window.closeModal = closeModal;
+
+// ── Event Detail Modal ─────────────────────────────────────────────────────────
+
+window.openEventDetail = function(id) {
+  const et    = eventTypes.find(e => e.id === id);
+  if (!et) return;
+
+  const etObs  = observations.filter(o => o.event_type_id === id);
+  const yr     = thisYear();
+  const avgDoy = averageDayOfYear(etObs);
+  const doys   = etObs.map(o => o.day_of_year);
+  const minDoy = doys.length ? Math.min(...doys) : null;
+  const maxDoy = doys.length ? Math.max(...doys) : null;
+  const yearsTracked = [...new Set(etObs.map(o => o.year))].length;
+
+  const statsHtml = `
+    <div class="detail-stats">
+      <div class="stat"><div class="stat-val">${etObs.length}</div><div class="stat-label">Observations</div></div>
+      <div class="stat"><div class="stat-val">${yearsTracked}</div><div class="stat-label">Years</div></div>
+      ${avgDoy !== null ? `<div class="stat"><div class="stat-val">${dayOfYearToDate(avgDoy, yr)}</div><div class="stat-label">Average</div></div>` : ""}
+      ${minDoy !== null ? `<div class="stat"><div class="stat-val">${dayOfYearToDate(minDoy, yr)}</div><div class="stat-label">Earliest</div></div>` : ""}
+      ${maxDoy !== null ? `<div class="stat"><div class="stat-val">${dayOfYearToDate(maxDoy, yr)}</div><div class="stat-label">Latest</div></div>` : ""}
+    </div>`;
+
+  let timelineHtml = "";
+  if (etObs.length >= 2 && minDoy !== maxDoy) {
+    const range = maxDoy - minDoy;
+    const avgPct = Math.round(((avgDoy - minDoy) / range) * 100);
+    const dots = etObs.map(o => {
+      const pct = Math.round(((o.day_of_year - minDoy) / range) * 100);
+      const isTY = o.year === yr;
+      return `<div class="timeline-dot${isTY ? " this-year" : ""}" style="left:${pct}%" title="${o.year}: ${formatDate(o.observed_date)}"></div>`;
+    }).join("");
+    timelineHtml = `
+      <div class="timeline-wrap">
+        <div class="timeline-label">Year-over-year range</div>
+        <div class="timeline-bar">
+          ${dots}
+          <div class="timeline-avg" style="left:${avgPct}%" title="Average"></div>
+        </div>
+        <div class="timeline-ends">
+          <span>${dayOfYearToDate(minDoy, yr)}</span>
+          <span style="color:var(--hub-primary,#6366f1);font-weight:600">avg ${dayOfYearToDate(avgDoy, yr)}</span>
+          <span>${dayOfYearToDate(maxDoy, yr)}</span>
+        </div>
+      </div>`;
+  }
+
+  let tableHtml;
+  if (etObs.length === 0) {
+    tableHtml = `<div class="detail-empty">No observations yet — be the first to log it!</div>`;
+  } else {
+    const memberById = new Map(members.map(m => [m.id, m]));
+    const sortedYears = [...new Set(etObs.map(o => o.year))].sort((a, b) => b - a);
+    let rows = "";
+    for (const year of sortedYears) {
+      const yearObs = etObs
+        .filter(o => o.year === year)
+        .sort((a, b) => a.observed_date.localeCompare(b.observed_date));
+      for (const obs of yearObs) {
+        const member     = memberById.get(obs.logged_by);
+        const memberName = member ? member.name : "?";
+        let cmpHtml      = "";
+        if (avgDoy !== null) {
+          const cmp = compareToAverage(obs.day_of_year, avgDoy);
+          if (cmp.diff === 0) cmpHtml = `<span class="avg-exact">avg</span>`;
+          else cmpHtml = `<span class="avg-diff ${cmp.diff < 0 ? "earlier" : "later"}">${esc(cmp.label)}</span>`;
+        }
+        rows += `
+          <tr>
+            <td>${year}</td>
+            <td><strong>${formatDate(obs.observed_date)}</strong></td>
+            <td>${cmpHtml}</td>
+            <td class="notes-cell">${esc(obs.notes)}</td>
+            <td>${esc(memberName)}</td>
+            <td><button class="btn-icon-sm danger" onclick="window.deleteObservation('${esc(obs.id)}', '${esc(id)}')" title="Delete">×</button></td>
+          </tr>`;
+      }
+    }
+    tableHtml = `
+      <h3>History</h3>
+      ${timelineHtml}
+      <table class="obs-table">
+        <thead><tr><th>Year</th><th>Date</th><th>vs avg</th><th>Notes</th><th>By</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  openModal(`
+    <div class="modal-header">
+      <span class="modal-icon">${esc(et.icon)}</span>
+      <div>
+        <div class="modal-title">${esc(et.name)}</div>
+        ${et.description ? `<div class="modal-subtitle">${esc(et.description)}</div>` : ""}
+      </div>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    ${statsHtml}
+    <div class="modal-actions-top">
+      <button class="btn-primary" onclick="closeModal(); window.openLogModal('${esc(id)}')">＋ Log Observation</button>
+    </div>
+    <div class="detail-history">${tableHtml}</div>
+  `, true);
+};
+
+// ── Log Observation Modal ──────────────────────────────────────────────────────
+
+window.openLogModal = function(preselectedId) {
+  const today = todayStr();
+  const options = eventTypes
+    .map(et => `<option value="${esc(et.id)}"${et.id === preselectedId ? " selected" : ""}>${esc(et.icon)} ${esc(et.name)}</option>`)
+    .join("");
+
+  openModal(`
+    <div class="modal-header">
+      <div class="modal-title">Log Observation</div>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-body">
+      <label class="form-label">Event</label>
+      <select id="f-event-type" class="form-select">${options}</select>
+      <label class="form-label">Date observed</label>
+      <input id="f-date" type="date" class="form-input" value="${today}" max="${today}" />
+      <label class="form-label">Notes <span class="optional">(optional)</span></label>
+      <textarea id="f-notes" class="form-textarea" rows="3" placeholder="What did you notice?"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="window.submitLogObservation()">Save</button>
+    </div>
+  `);
+};
+
+window.submitLogObservation = async function() {
+  const eventTypeId = document.getElementById("f-event-type").value;
+  const date        = document.getElementById("f-date").value;
+  const notes       = document.getElementById("f-notes").value.trim();
+  if (!eventTypeId || !date) return;
+
+  const id  = crypto.randomUUID();
+  const yr  = parseInt(date.split("-")[0], 10);
+  const doy = dayOfYear(date);
+  const now = new Date().toISOString();
+
+  // Optimistic: prepend to local observations, close modal, render immediately
+  observations.unshift({ id, event_type_id: eventTypeId, observed_date: date, year: yr, day_of_year: doy, notes, logged_by: ME?.id ?? "system", created_at: now });
+  closeModal();
+  markDirty();
+  render();
+
+  db(
+    `INSERT INTO observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, eventTypeId, date, yr, doy, notes, ME?.id ?? "system", now]
+  ).then(() => loadData().then(render));
+};
+
+// ── Delete Observation ─────────────────────────────────────────────────────────
+
+window.deleteObservation = async function(obsId, reopenEventTypeId) {
+  const confirmed = await hubConfirm({
+    message: "Delete this observation?",
+    confirmLabel: "Delete",
+    destructive: true,
+  });
+  if (!confirmed) return;
+
+  // Optimistic: remove from local state, close modal, render immediately
+  observations = observations.filter(o => o.id !== obsId);
+  closeModal();
+  markDirty();
+  render();
+  if (reopenEventTypeId) window.openEventDetail(reopenEventTypeId);
+
+  db(`DELETE FROM observations WHERE id = ?`, [obsId])
+    .then(() => loadData().then(render));
+};
+
+// ── Manage Events Modal ────────────────────────────────────────────────────────
+
+window.openManageModal = function() {
+  const rows = eventTypes.length === 0
+    ? `<div class="manage-empty">No events yet — add one below.</div>`
+    : eventTypes.map(et => `
+        <div class="manage-row">
+          <span class="manage-icon">${esc(et.icon)}</span>
+          <span class="manage-name">${esc(et.name)}</span>
+          <div class="manage-actions">
+            <button class="btn-icon-sm" onclick="window.openEditEventTypeModal('${esc(et.id)}')" title="Edit">✏</button>
+            <button class="btn-icon-sm danger" onclick="window.archiveEventType('${esc(et.id)}')" title="Remove">✕</button>
+          </div>
+        </div>`).join("");
+
+  openModal(`
+    <div class="modal-header">
+      <div class="modal-title">Manage Events</div>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="manage-list">${rows}</div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="window.openAddEventTypeModal()">＋ Add Event Type</button>
+    </div>
+  `);
+};
+
+window.openAddEventTypeModal = function() {
+  openModal(`
+    <div class="modal-header">
+      <div class="modal-title">Add Event Type</div>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-body">
+      <label class="form-label">Icon (emoji)</label>
+      <input id="f-icon" type="text" class="form-input emoji-input" value="📅" maxlength="4" />
+      <label class="form-label">Name</label>
+      <input id="f-name" type="text" class="form-input" placeholder="First Frost" maxlength="80" />
+      <label class="form-label">Description <span class="optional">(optional)</span></label>
+      <input id="f-desc" type="text" class="form-input" placeholder="Brief description" maxlength="200" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="window.openManageModal()">Back</button>
+      <button class="btn-primary" onclick="window.submitAddEventType()">Create</button>
+    </div>
+  `);
+  document.getElementById("f-name").focus();
+};
+
+window.submitAddEventType = async function() {
+  const icon = document.getElementById("f-icon").value.trim() || "📅";
+  const name = document.getElementById("f-name").value.trim();
+  const desc = document.getElementById("f-desc").value.trim();
+  if (!name) { document.getElementById("f-name").focus(); return; }
+
+  const id  = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  // Optimistic: append to local eventTypes, close modal, render immediately
+  eventTypes = [...eventTypes, { id, name, icon, description: desc, created_by: ME?.id ?? "system", created_at: now, archived_at: null }]
+    .sort((a, b) => a.name.localeCompare(b.name));
+  closeModal();
+  markDirty();
+  render();
+
+  db(
+    `INSERT INTO event_types (id, name, icon, description, created_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, name, icon, desc, ME?.id ?? "system", now]
+  ).then(() => loadData().then(render));
+};
+
+window.openEditEventTypeModal = function(id) {
+  const et = eventTypes.find(e => e.id === id);
+  if (!et) return;
+  openModal(`
+    <div class="modal-header">
+      <div class="modal-title">Edit Event Type</div>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-body">
+      <label class="form-label">Icon (emoji)</label>
+      <input id="f-icon" type="text" class="form-input emoji-input" value="${esc(et.icon)}" maxlength="4" />
+      <label class="form-label">Name</label>
+      <input id="f-name" type="text" class="form-input" value="${esc(et.name)}" maxlength="80" />
+      <label class="form-label">Description <span class="optional">(optional)</span></label>
+      <input id="f-desc" type="text" class="form-input" value="${esc(et.description)}" maxlength="200" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="window.openManageModal()">Back</button>
+      <button class="btn-primary" onclick="window.submitEditEventType('${esc(id)}')">Save</button>
+    </div>
+  `);
+};
+
+window.submitEditEventType = async function(id) {
+  const icon = document.getElementById("f-icon").value.trim() || "📅";
+  const name = document.getElementById("f-name").value.trim();
+  const desc = document.getElementById("f-desc").value.trim();
+  if (!name) { document.getElementById("f-name").focus(); return; }
+
+  // Optimistic: update in local eventTypes, close modal, render immediately
+  const et = eventTypes.find(e => e.id === id);
+  if (et) Object.assign(et, { name, icon, description: desc });
+  eventTypes = [...eventTypes].sort((a, b) => a.name.localeCompare(b.name));
+  closeModal();
+  markDirty();
+  render();
+
+  db(`UPDATE event_types SET name = ?, icon = ?, description = ? WHERE id = ?`, [name, icon, desc, id])
+    .then(() => loadData().then(render));
+};
+
+window.archiveEventType = async function(id) {
+  const et = eventTypes.find(e => e.id === id);
+  if (!et) return;
+  const confirmed = await hubConfirm({
+    message: `Remove "${et.name}"?`,
+    description: "This hides the event type. Existing observations are preserved.",
+    confirmLabel: "Remove",
+    destructive: true,
+  });
+  if (!confirmed) return;
+  const now = new Date().toISOString();
+
+  // Optimistic: remove from local eventTypes, re-render manage modal immediately
+  eventTypes = eventTypes.filter(e => e.id !== id);
+  markDirty();
+  render();
+  window.openManageModal();
+
+  db(`UPDATE event_types SET archived_at = ? WHERE id = ?`, [now, id])
+    .then(() => loadData().then(render));
+};
+
+// ── Deep link ─────────────────────────────────────────────────────────────────
+
+function handleDeepLink() {
+  const params  = new URLSearchParams(window.location.search);
+  const etId    = params.get("eventTypeId");
+  if (etId) window.openEventDetail(etId);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+
+(async () => {
+  await Promise.all([loadMembers(), loadData()]);
+  handleDeepLink();
+  render();
+})();
+</script>
+</body>
+</html>

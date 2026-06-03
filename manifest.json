@@ -1,0 +1,27 @@
+{
+  "id": "almanac",
+  "name": "Almanac",
+  "version": "1.0.0",
+  "description": "Track recurring seasonal events — first frost, first blooms, first robin — and watch patterns emerge year over year.",
+  "entrypoint": "index.html",
+  "runtime": "static",
+  "category": "nature",
+  "tags": ["nature", "seasons", "garden", "outdoor", "tracking"],
+  "data_access": {
+    "reads": ["family.members"],
+    "writes": []
+  },
+  "permissions": {
+    "default_audience": "everyone",
+    "requires_approval": false
+  },
+  "storage": "db",
+  "nav": { "label": "Almanac" },
+  "widget": { "label": "Almanac", "size": "small", "entrypoint": "widget.html" },
+  "icon": "📅",
+  "ai_access": {
+    "allowed": true,
+    "mode": "read",
+    "db_exports": ["observations_history"]
+  }
+}
