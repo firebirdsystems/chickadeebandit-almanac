@@ -137,10 +137,10 @@ async function load() {
   const yr = new Date().getFullYear();
 
   const [{ rows: eventTypes }, { rows: avgs }, { rows: thisYrLogged }] = await Promise.all([
-    dbq(`SELECT id, name, icon FROM event_types WHERE archived_at IS NULL`),
+    dbq(`SELECT id, name, icon FROM app_almanac__event_types WHERE archived_at IS NULL`),
     dbq(`SELECT event_type_id, AVG(day_of_year) AS avg_doy, COUNT(*) AS total
-         FROM observations GROUP BY event_type_id`),
-    dbq(`SELECT DISTINCT event_type_id FROM observations WHERE year = ?`, [yr]),
+         FROM app_almanac__observations GROUP BY event_type_id`),
+    dbq(`SELECT DISTINCT event_type_id FROM app_almanac__observations WHERE year = ?`, [yr]),
   ]);
 
   const avgMap    = Object.fromEntries(avgs.map(r => [r.event_type_id, { avgDoy: Math.round(r.avg_doy), total: r.total }]));

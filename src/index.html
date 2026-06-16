@@ -452,9 +452,9 @@ async function loadData() {
   }
   const [{ rows: et }, { rows: obs }] = await Promise.all([
     db(`SELECT id, name, icon, description, created_by, created_at, archived_at
-        FROM event_types WHERE archived_at IS NULL ORDER BY name ASC`),
+        FROM app_almanac__event_types WHERE archived_at IS NULL ORDER BY name ASC`),
     db(`SELECT id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at
-        FROM observations ORDER BY observed_date DESC`),
+        FROM app_almanac__observations ORDER BY observed_date DESC`),
   ]);
   eventTypes   = et;
   observations = obs;
@@ -797,7 +797,7 @@ window.submitLogObservation = async function() {
   render();
 
   db(
-    `INSERT INTO observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at)
+    `INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, eventTypeId, date, yr, doy, notes, ME?.id ?? "system", now]
   ).then(() => loadData().then(render));
@@ -820,7 +820,7 @@ window.deleteObservation = async function(obsId, reopenEventTypeId) {
   render();
   if (reopenEventTypeId) window.openEventDetail(reopenEventTypeId);
 
-  db(`DELETE FROM observations WHERE id = ?`, [obsId])
+  db(`DELETE FROM app_almanac__observations WHERE id = ?`, [obsId])
     .then(() => loadData().then(render));
 };
 
@@ -890,7 +890,7 @@ window.submitAddEventType = async function() {
   render();
 
   db(
-    `INSERT INTO event_types (id, name, icon, description, created_by, created_at)
+    `INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [id, name, icon, desc, ME?.id ?? "system", now]
   ).then(() => loadData().then(render));
@@ -933,7 +933,7 @@ window.submitEditEventType = async function(id) {
   markDirty();
   render();
 
-  db(`UPDATE event_types SET name = ?, icon = ?, description = ? WHERE id = ?`, [name, icon, desc, id])
+  db(`UPDATE app_almanac__event_types SET name = ?, icon = ?, description = ? WHERE id = ?`, [name, icon, desc, id])
     .then(() => loadData().then(render));
 };
 
@@ -955,7 +955,7 @@ window.archiveEventType = async function(id) {
   render();
   window.openManageModal();
 
-  db(`UPDATE event_types SET archived_at = ? WHERE id = ?`, [now, id])
+  db(`UPDATE app_almanac__event_types SET archived_at = ? WHERE id = ?`, [now, id])
     .then(() => loadData().then(render));
 };
 

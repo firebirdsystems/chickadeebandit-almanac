@@ -9,10 +9,8 @@ SELECT
   o.notes,
   o.logged_by,
   o.created_at
-FROM observations o
-JOIN event_types e
+FROM app_almanac__observations o
+JOIN app_almanac__event_types e
   ON e.id = o.event_type_id
-  AND e.household_id = o.household_id
-WHERE o.household_id = current_setting('app.household_id', true)::uuid
 ORDER BY o.observed_date DESC
 LIMIT 500
