@@ -19,6 +19,7 @@
   "nav": { "label": "Almanac" },
   "widget": { "label": "Almanac", "size": "small", "entrypoint": "widget.html" },
   "icon": "📅",
+  "db_plaintext_columns": ["observed_date"],
   "ai_access": {
     "allowed": true,
     "mode": "read",

@@ -8,7 +8,6 @@ import {
   compareToAverage,
   thisYear,
   todayStr,
-  upcomingInfo,
 } from "../src/logic.js";
 
 describe("dayOfYear", () => {
@@ -145,32 +144,3 @@ describe("todayStr", () => {
   });
 });
 
-describe("upcomingInfo", () => {
-  it("returns null for no observations", () => {
-    expect(upcomingInfo([])).toBeNull();
-  });
-
-  it("returns null when average doy is outside window", () => {
-    // avg doy = 1 (Jan 1), window = 60 — should be > 60 days away for most of the year
-    const obs = [{ day_of_year: 1 }, { day_of_year: 1 }];
-    const result = upcomingInfo(obs, 60);
-    // Jan 1 is usually more than 60 days away in mid-year, but we can't know for sure
-    // so just check it returns null or an object with the right shape
-    if (result !== null) {
-      expect(result).toHaveProperty("daysUntil");
-      expect(result).toHaveProperty("avgDoy");
-    }
-  });
-
-  it("returns info with avgDoy and daysUntil when within window", () => {
-    const today = new Date();
-    const todayDoy = dayOfYear(
-      `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`
-    );
-    const obs = [{ day_of_year: todayDoy }, { day_of_year: todayDoy }];
-    const result = upcomingInfo(obs, 60);
-    expect(result).not.toBeNull();
-    expect(result.daysUntil).toBe(0);
-    expect(result.avgDoy).toBe(todayDoy);
-  });
-});

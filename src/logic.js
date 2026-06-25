@@ -74,16 +74,3 @@ export function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-
-/**
- * Given a list of observations for one event type, returns the ones "coming up soon"
- * within the next `windowDays` days based on average day-of-year.
- * Returns { daysUntil, avgDoy } or null if no history.
- */
-export function upcomingInfo(observations, windowDays = 60) {
-  const avgDoy = averageDayOfYear(observations);
-  if (avgDoy === null) return null;
-  const until = daysUntilDoy(avgDoy);
-  if (until > windowDays) return null;
-  return { daysUntil: until, avgDoy };
-}

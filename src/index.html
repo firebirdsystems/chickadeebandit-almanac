@@ -408,10 +408,11 @@ import {
 
 const DB      = window.__DB_URL      ?? "";
 const CONTEXT = window.__CONTEXT_URL ?? "";
-const APP_ID  = "almanac";
+const APP_ID  = window.__APP_ID ?? "almanac";
 const ME      = window.__CURRENT_MEMBER ?? null;
 
 let members    = [];
+let memberMap  = new Map();
 let eventTypes = [];
 let observations = [];
 let activeTab  = "events";
@@ -436,12 +437,14 @@ async function loadMembers() {
       { id: "demo-1", name: "Alex", role: "adult" },
       { id: "demo-2", name: "Sam",  role: "adult" },
     ];
+    memberMap = new Map(members.map(m => [m.id, m]));
     return;
   }
   try {
     const res = await fetch(`${CONTEXT}?keys=family.members`);
     members = ((await res.json())["family.members"]) ?? [];
   } catch { members = []; }
+  memberMap = new Map(members.map(m => [m.id, m]));
 }
 
 async function loadData() {
@@ -598,7 +601,6 @@ function renderHistory() {
     obsByYear.get(o.year).push(o);
   }
   const etById = new Map(eventTypes.map(e => [e.id, e]));
-  const memberById = new Map(members.map(m => [m.id, m]));
 
   const years = [...obsByYear.keys()].sort((a, b) => b - a);
   let html = "";
@@ -610,7 +612,7 @@ function renderHistory() {
     for (const obs of yearObs) {
       const et = etById.get(obs.event_type_id);
       if (!et) continue;
-      const memberName = memberById.get(obs.logged_by)?.name ?? "Someone";
+      const memberName = memberMap.get(obs.logged_by)?.name ?? "Someone";
       html += `
         <div class="history-row">
           <span class="hist-icon">${esc(et.icon)}</span>
@@ -698,7 +700,6 @@ window.openEventDetail = function(id) {
   if (etObs.length === 0) {
     tableHtml = `<div class="detail-empty">No observations yet — be the first to log it!</div>`;
   } else {
-    const memberById = new Map(members.map(m => [m.id, m]));
     const sortedYears = [...new Set(etObs.map(o => o.year))].sort((a, b) => b - a);
     let rows = "";
     for (const year of sortedYears) {
@@ -706,7 +707,7 @@ window.openEventDetail = function(id) {
         .filter(o => o.year === year)
         .sort((a, b) => a.observed_date.localeCompare(b.observed_date));
       for (const obs of yearObs) {
-        const member     = memberById.get(obs.logged_by);
+        const member     = memberMap.get(obs.logged_by);
         const memberName = member ? member.name : "?";
         let cmpHtml      = "";
         if (avgDoy !== null) {
@@ -800,7 +801,7 @@ window.submitLogObservation = async function() {
     `INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, eventTypeId, date, yr, doy, notes, ME?.id ?? "system", now]
-  ).then(() => loadData().then(render));
+  ).catch(() => {});
 };
 
 // ── Delete Observation ─────────────────────────────────────────────────────────
@@ -820,8 +821,7 @@ window.deleteObservation = async function(obsId, reopenEventTypeId) {
   render();
   if (reopenEventTypeId) window.openEventDetail(reopenEventTypeId);
 
-  db(`DELETE FROM app_almanac__observations WHERE id = ?`, [obsId])
-    .then(() => loadData().then(render));
+  db(`DELETE FROM app_almanac__observations WHERE id = ?`, [obsId]).catch(() => {});
 };
 
 // ── Manage Events Modal ────────────────────────────────────────────────────────
@@ -893,7 +893,7 @@ window.submitAddEventType = async function() {
     `INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [id, name, icon, desc, ME?.id ?? "system", now]
-  ).then(() => loadData().then(render));
+  ).catch(() => {});
 };
 
 window.openEditEventTypeModal = function(id) {
@@ -934,7 +934,7 @@ window.submitEditEventType = async function(id) {
   render();
 
   db(`UPDATE app_almanac__event_types SET name = ?, icon = ?, description = ? WHERE id = ?`, [name, icon, desc, id])
-    .then(() => loadData().then(render));
+    .catch(() => {});
 };
 
 window.archiveEventType = async function(id) {
@@ -955,8 +955,7 @@ window.archiveEventType = async function(id) {
   render();
   window.openManageModal();
 
-  db(`UPDATE app_almanac__event_types SET archived_at = ? WHERE id = ?`, [now, id])
-    .then(() => loadData().then(render));
+  db(`UPDATE app_almanac__event_types SET archived_at = ? WHERE id = ?`, [now, id]).catch(() => {});
 };
 
 // ── Deep link ─────────────────────────────────────────────────────────────────
