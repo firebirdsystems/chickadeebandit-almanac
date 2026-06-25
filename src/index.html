@@ -459,7 +459,7 @@ async function loadData() {
     db(`SELECT id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at
         FROM app_almanac__observations ORDER BY observed_date DESC`),
   ]);
-  eventTypes   = et;
+  eventTypes   = et.slice().sort((a, b) => a.name.localeCompare(b.name));
   observations = obs;
   markDirty();
 }
