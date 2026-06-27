@@ -319,6 +319,34 @@
     .form-textarea { resize: vertical; }
     .emoji-input { font-size: 1.3rem; text-align: center; max-width: 80px; }
 
+    /* ── Emoji picker ── */
+    .emoji-field { display: flex; align-items: flex-start; gap: 12px; }
+    .emoji-picker {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+      gap: 4px;
+    }
+    .emoji-option {
+      font-size: 1.25rem;
+      line-height: 1;
+      height: 38px;
+      border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 6px);
+      background: var(--hub-surface, #fff);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .emoji-option:hover { background: var(--hub-bg, #f9fafb); }
+    .emoji-option.selected {
+      border-color: var(--hub-primary, #6366f1);
+      background: var(--hub-bg, #f9fafb);
+      box-shadow: inset 0 0 0 1px var(--hub-primary, #6366f1);
+    }
+
     /* ── Buttons ── */
     .modal-actions {
       display: flex;
@@ -416,6 +444,44 @@ let memberMap  = new Map();
 let eventTypes = [];
 let observations = [];
 let activeTab  = "events";
+
+// Curated palette for the emoji picker (any emoji can still be typed manually)
+const EMOJI_CHOICES = [
+  "📅","❄️","🌡️","🌸","🌷","🌻","🌹","🌼","🌱","🍀","🍂","🍁",
+  "🌾","🌳","🌲","🍄","🌰","🌽","🍓","🍎","🎃","✨","☀️","🌙",
+  "⭐","🌈","🌧️","⛈️","🌊","💨","🐦","🦋","🐝","🐞","🐸","🦌",
+  "🐿️","🪺","🥚","🐛","🐌","🌬️",
+];
+
+// Renders a clickable emoji grid bound to a hidden text input with id `f-icon`.
+function emojiPickerHtml(current) {
+  const cur = current || "📅";
+  const buttons = EMOJI_CHOICES.map(em =>
+    `<button type="button" class="emoji-option${em === cur ? " selected" : ""}" onclick="window.pickEmoji('${em}')">${em}</button>`
+  ).join("");
+  return `
+    <div class="emoji-field">
+      <input id="f-icon" type="text" class="form-input emoji-input" value="${esc(cur)}" maxlength="4"
+             oninput="window.syncEmojiPicker()" aria-label="Selected emoji" />
+      <div class="emoji-picker" id="emoji-picker">${buttons}</div>
+    </div>`;
+}
+
+window.pickEmoji = function(em) {
+  const input = document.getElementById("f-icon");
+  if (input) input.value = em;
+  window.syncEmojiPicker();
+};
+
+window.syncEmojiPicker = function() {
+  const input = document.getElementById("f-icon");
+  const picker = document.getElementById("emoji-picker");
+  if (!input || !picker) return;
+  const val = input.value.trim();
+  picker.querySelectorAll(".emoji-option").forEach(btn => {
+    btn.classList.toggle("selected", btn.textContent === val);
+  });
+};
 
 // Track which panels need a rebuild; skip re-rendering unchanged tabs
 const dirtyPanels = new Set(["events", "history"]);
@@ -859,7 +925,7 @@ window.openAddEventTypeModal = function() {
     </div>
     <div class="form-body">
       <label class="form-label">Icon (emoji)</label>
-      <input id="f-icon" type="text" class="form-input emoji-input" value="📅" maxlength="4" />
+      ${emojiPickerHtml("📅")}
       <label class="form-label">Name</label>
       <input id="f-name" type="text" class="form-input" placeholder="First Frost" maxlength="80" />
       <label class="form-label">Description <span class="optional">(optional)</span></label>
@@ -906,7 +972,7 @@ window.openEditEventTypeModal = function(id) {
     </div>
     <div class="form-body">
       <label class="form-label">Icon (emoji)</label>
-      <input id="f-icon" type="text" class="form-input emoji-input" value="${esc(et.icon)}" maxlength="4" />
+      ${emojiPickerHtml(et.icon)}
       <label class="form-label">Name</label>
       <input id="f-name" type="text" class="form-input" value="${esc(et.name)}" maxlength="80" />
       <label class="form-label">Description <span class="optional">(optional)</span></label>
