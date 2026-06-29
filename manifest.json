@@ -16,6 +16,7 @@
     "requires_approval": false
   },
   "storage": "db",
+  "db_encryption": "off",
   "nav": { "label": "Almanac" },
   "widget": { "label": "Almanac", "size": "small", "entrypoint": "widget.html" },
   "icon": "📅",
