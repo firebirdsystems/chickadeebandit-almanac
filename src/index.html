@@ -441,7 +441,8 @@ const ME      = window.__CURRENT_MEMBER ?? null;
 
 let members    = [];
 let memberMap  = new Map();
-let eventTypes = [];
+let eventTypes = [];          // active (non-archived) — Events tab, pickers, manage
+let allTypesById = new Map(); // includes archived — History tab still renders their observations
 let observations = [];
 let activeTab  = "events";
 
@@ -494,8 +495,40 @@ async function db(sql, params = []) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),
   });
+  if (!res.ok) throw new Error(`db request failed: ${res.status}`);
   return res.json();
 }
+
+// Lightweight transient toast for surfacing failed optimistic writes.
+let toastEl = null;
+function toast(msg) {
+  toastEl?.remove();
+  toastEl = document.createElement("div");
+  toastEl.textContent = msg;
+  toastEl.style.cssText =
+    "position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:200;" +
+    "background:#111827;color:#fff;padding:10px 16px;border-radius:8px;font-size:0.85rem;" +
+    "box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:90vw;";
+  document.body.appendChild(toastEl);
+  setTimeout(() => { toastEl?.remove(); toastEl = null; }, 4000);
+}
+
+// Single delegated click handler for all DB-id-bearing controls. Interpolating
+// ids into inline on* handler strings is a JS-context injection sink (HTML
+// escaping is decoded back before the JS parser runs); data-* attributes are not.
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  const { action, id, reopen } = el.dataset;
+  switch (action) {
+    case "open-detail":    window.openEventDetail(id); break;
+    case "log":            window.openLogModal(id); break;
+    case "delete-obs":     window.deleteObservation(id, reopen || null); break;
+    case "edit-type":      window.openEditEventTypeModal(id); break;
+    case "archive-type":   window.archiveEventType(id); break;
+    case "edit-type-save": window.submitEditEventType(id); break;
+  }
+});
 
 async function loadMembers() {
   if (!CONTEXT) {
@@ -521,11 +554,13 @@ async function loadData() {
   }
   const [{ rows: et }, { rows: obs }] = await Promise.all([
     db(`SELECT id, name, icon, description, created_by, created_at, archived_at
-        FROM app_almanac__event_types WHERE archived_at IS NULL ORDER BY name ASC`),
+        FROM app_almanac__event_types`),
     db(`SELECT id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at
         FROM app_almanac__observations ORDER BY observed_date DESC`),
   ]);
-  eventTypes   = et.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const allTypes = et.slice().sort((a, b) => a.name.localeCompare(b.name));
+  allTypesById = new Map(allTypes.map(e => [e.id, e]));
+  eventTypes   = allTypes.filter(e => !e.archived_at);
   observations = obs;
   markDirty();
 }
@@ -539,6 +574,7 @@ function seedDemo() {
     { id: "et-4", name: "First Firefly",         icon: "✨",  description: "First firefly sighting of summer", created_by: "demo-2", created_at: `${yr-3}-01-01`, archived_at: null },
     { id: "et-5", name: "First Leaves Turning",  icon: "🍂",  description: "First autumn color in the trees",  created_by: "demo-1", created_at: `${yr-4}-01-01`, archived_at: null },
   ];
+  allTypesById = new Map(eventTypes.map(e => [e.id, e]));
   observations = [
     // First Frost (avg ~Oct 30, doy ~303)
     { id:"o-1",  event_type_id:"et-1", observed_date:`${yr-4}-10-28`, year:yr-4, day_of_year:dayOfYear(`${yr-4}-10-28`), notes:"",                  logged_by:"demo-1", created_at:`${yr-4}-10-28T00:00:00Z` },
@@ -635,11 +671,11 @@ function renderEventCard(et, yr, obsByType) {
 
   const total = etObs.length;
   return `
-    <div class="event-card" onclick="window.openEventDetail('${esc(et.id)}')">
+    <div class="event-card" data-action="open-detail" data-id="${esc(et.id)}">
       <div class="card-header">
         <span class="card-icon">${esc(et.icon)}</span>
         <span class="card-name">${esc(et.name)}</span>
-        <button class="btn-log" onclick="event.stopPropagation(); window.openLogModal('${esc(et.id)}')" title="Log observation">＋</button>
+        <button class="btn-log" data-action="log" data-id="${esc(et.id)}" title="Log observation">＋</button>
       </div>
       ${thisYrHtml}
       ${prevHtml}
@@ -666,7 +702,7 @@ function renderHistory() {
     if (!obsByYear.has(o.year)) obsByYear.set(o.year, []);
     obsByYear.get(o.year).push(o);
   }
-  const etById = new Map(eventTypes.map(e => [e.id, e]));
+  const etById = allTypesById.size ? allTypesById : new Map(eventTypes.map(e => [e.id, e]));
 
   const years = [...obsByYear.keys()].sort((a, b) => b - a);
   let html = "";
@@ -689,7 +725,7 @@ function renderHistory() {
           </div>
           <div class="hist-meta">
             <span class="hist-who">${esc(memberName)}</span>
-            <button class="btn-icon-sm danger" onclick="window.deleteObservation('${esc(obs.id)}', null)" title="Delete">×</button>
+            <button class="btn-icon-sm danger" data-action="delete-obs" data-id="${esc(obs.id)}" title="Delete">×</button>
           </div>
         </div>`;
     }
@@ -788,7 +824,7 @@ window.openEventDetail = function(id) {
             <td>${cmpHtml}</td>
             <td class="notes-cell">${esc(obs.notes)}</td>
             <td>${esc(memberName)}</td>
-            <td><button class="btn-icon-sm danger" onclick="window.deleteObservation('${esc(obs.id)}', '${esc(id)}')" title="Delete">×</button></td>
+            <td><button class="btn-icon-sm danger" data-action="delete-obs" data-id="${esc(obs.id)}" data-reopen="${esc(id)}" title="Delete">×</button></td>
           </tr>`;
       }
     }
@@ -812,7 +848,7 @@ window.openEventDetail = function(id) {
     </div>
     ${statsHtml}
     <div class="modal-actions-top">
-      <button class="btn-primary" onclick="closeModal(); window.openLogModal('${esc(id)}')">＋ Log Observation</button>
+      <button class="btn-primary" data-action="log" data-id="${esc(id)}">＋ Log Observation</button>
     </div>
     <div class="detail-history">${tableHtml}</div>
   `, true);
@@ -867,7 +903,12 @@ window.submitLogObservation = async function() {
     `INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, eventTypeId, date, yr, doy, notes, ME?.id ?? "system", now]
-  ).catch(() => {});
+  ).catch(() => {
+    observations = observations.filter(o => o.id !== id);
+    markDirty();
+    render();
+    toast("Couldn't save observation — please try again.");
+  });
 };
 
 // ── Delete Observation ─────────────────────────────────────────────────────────
@@ -881,13 +922,19 @@ window.deleteObservation = async function(obsId, reopenEventTypeId) {
   if (!confirmed) return;
 
   // Optimistic: remove from local state, close modal, render immediately
+  const removed = observations.find(o => o.id === obsId);
   observations = observations.filter(o => o.id !== obsId);
   closeModal();
   markDirty();
   render();
   if (reopenEventTypeId) window.openEventDetail(reopenEventTypeId);
 
-  db(`DELETE FROM app_almanac__observations WHERE id = ?`, [obsId]).catch(() => {});
+  db(`DELETE FROM app_almanac__observations WHERE id = ?`, [obsId]).catch(() => {
+    if (removed) observations.unshift(removed);
+    markDirty();
+    render();
+    toast("Couldn't delete observation — please try again.");
+  });
 };
 
 // ── Manage Events Modal ────────────────────────────────────────────────────────
@@ -900,8 +947,8 @@ window.openManageModal = function() {
           <span class="manage-icon">${esc(et.icon)}</span>
           <span class="manage-name">${esc(et.name)}</span>
           <div class="manage-actions">
-            <button class="btn-icon-sm" onclick="window.openEditEventTypeModal('${esc(et.id)}')" title="Edit">✏</button>
-            <button class="btn-icon-sm danger" onclick="window.archiveEventType('${esc(et.id)}')" title="Remove">✕</button>
+            <button class="btn-icon-sm" data-action="edit-type" data-id="${esc(et.id)}" title="Edit">✏</button>
+            <button class="btn-icon-sm danger" data-action="archive-type" data-id="${esc(et.id)}" title="Remove">✕</button>
           </div>
         </div>`).join("");
 
@@ -949,8 +996,9 @@ window.submitAddEventType = async function() {
   const now = new Date().toISOString();
 
   // Optimistic: append to local eventTypes, close modal, render immediately
-  eventTypes = [...eventTypes, { id, name, icon, description: desc, created_by: ME?.id ?? "system", created_at: now, archived_at: null }]
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const newType = { id, name, icon, description: desc, created_by: ME?.id ?? "system", created_at: now, archived_at: null };
+  eventTypes = [...eventTypes, newType].sort((a, b) => a.name.localeCompare(b.name));
+  allTypesById.set(id, newType);
   closeModal();
   markDirty();
   render();
@@ -959,7 +1007,13 @@ window.submitAddEventType = async function() {
     `INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [id, name, icon, desc, ME?.id ?? "system", now]
-  ).catch(() => {});
+  ).catch(() => {
+    eventTypes = eventTypes.filter(e => e.id !== id);
+    allTypesById.delete(id);
+    markDirty();
+    render();
+    toast("Couldn't create event type — please try again.");
+  });
 };
 
 window.openEditEventTypeModal = function(id) {
@@ -980,7 +1034,7 @@ window.openEditEventTypeModal = function(id) {
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="window.openManageModal()">Back</button>
-      <button class="btn-primary" onclick="window.submitEditEventType('${esc(id)}')">Save</button>
+      <button class="btn-primary" data-action="edit-type-save" data-id="${esc(id)}">Save</button>
     </div>
   `);
 };
@@ -993,6 +1047,7 @@ window.submitEditEventType = async function(id) {
 
   // Optimistic: update in local eventTypes, close modal, render immediately
   const et = eventTypes.find(e => e.id === id);
+  const prev = et ? { name: et.name, icon: et.icon, description: et.description } : null;
   if (et) Object.assign(et, { name, icon, description: desc });
   eventTypes = [...eventTypes].sort((a, b) => a.name.localeCompare(b.name));
   closeModal();
@@ -1000,7 +1055,13 @@ window.submitEditEventType = async function(id) {
   render();
 
   db(`UPDATE app_almanac__event_types SET name = ?, icon = ?, description = ? WHERE id = ?`, [name, icon, desc, id])
-    .catch(() => {});
+    .catch(() => {
+      if (et && prev) Object.assign(et, prev);
+      eventTypes = [...eventTypes].sort((a, b) => a.name.localeCompare(b.name));
+      markDirty();
+      render();
+      toast("Couldn't save changes — please try again.");
+    });
 };
 
 window.archiveEventType = async function(id) {
@@ -1016,12 +1077,19 @@ window.archiveEventType = async function(id) {
   const now = new Date().toISOString();
 
   // Optimistic: remove from local eventTypes, re-render manage modal immediately
+  const removed = eventTypes.find(e => e.id === id);
   eventTypes = eventTypes.filter(e => e.id !== id);
   markDirty();
   render();
   window.openManageModal();
 
-  db(`UPDATE app_almanac__event_types SET archived_at = ? WHERE id = ?`, [now, id]).catch(() => {});
+  db(`UPDATE app_almanac__event_types SET archived_at = ? WHERE id = ?`, [now, id]).catch(() => {
+    if (removed) eventTypes = [...eventTypes, removed].sort((a, b) => a.name.localeCompare(b.name));
+    markDirty();
+    render();
+    window.openManageModal();
+    toast("Couldn't remove event type — please try again.");
+  });
 };
 
 // ── Deep link ─────────────────────────────────────────────────────────────────
@@ -1035,7 +1103,12 @@ function handleDeepLink() {
 // ── Init ───────────────────────────────────────────────────────────────────────
 
 (async () => {
-  await Promise.all([loadMembers(), loadData()]);
+  try {
+    await Promise.all([loadMembers(), loadData()]);
+  } catch {
+    markDirty();
+    toast("Couldn't load your almanac — please refresh.");
+  }
   handleDeepLink();
   render();
 })();

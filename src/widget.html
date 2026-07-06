@@ -133,6 +133,13 @@ function openApp(eventTypeId) {
   }
 }
 
+// Delegated row clicks: openApp is module-scoped, so inline on* handlers can't
+// reach it, and interpolating ids into inline handlers is an injection sink.
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-open]");
+  if (el) openApp(el.dataset.open);
+});
+
 async function load() {
   const yr = new Date().getFullYear();
 
@@ -182,7 +189,7 @@ async function load() {
     }
     const dateStr = dayOfYearToDate(et.avgDoy, new Date().getFullYear());
     return `
-      <div class="row" onclick="openApp('${esc(et.id)}')">
+      <div class="row" data-open="${esc(et.id)}">
         <span class="row-icon">${esc(et.icon)}</span>
         <div class="row-info">
           <div class="row-name">${esc(et.name)}</div>
