@@ -1,5 +1,6 @@
 {
   "id": "almanac",
+  "contexts": ["household", "shared_space"],
   "name": "Almanac",
   "version": "1.0.0",
   "description": "Track recurring seasonal events — first frost, first blooms, first robin — and watch patterns emerge year over year.",
