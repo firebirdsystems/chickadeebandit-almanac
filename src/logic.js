@@ -74,3 +74,13 @@ export function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+/**
+ * Fields the in-app search matches against (see hub-sdk `searchMatch`).
+ * An observation carries only its note, so the event type's name is
+ * passed in — "when did we first see frogspawn" is a search for the
+ * type, and the note is where the detail of that sighting lives.
+ */
+export function searchableFields(observation, typeName = "") {
+  return [observation.notes, typeName];
+}

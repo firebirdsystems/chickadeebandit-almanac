@@ -7,7 +7,7 @@ import {
   daysUntilDoy,
   compareToAverage,
   thisYear,
-  todayStr,
+  todayStr, searchableFields,
 } from "../src/logic.js";
 
 describe("dayOfYear", () => {
@@ -144,3 +144,11 @@ describe("todayStr", () => {
   });
 });
 
+
+describe("searchableFields", () => {
+  it("matches on the note and on the event type name passed in", () => {
+    const fields = searchableFields({ notes: "in the pond by the gate" }, "First frogspawn");
+    expect(fields).toContain("in the pond by the gate");
+    expect(fields).toContain("First frogspawn");
+  });
+});
