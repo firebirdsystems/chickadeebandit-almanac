@@ -447,6 +447,7 @@ import {
 } from "./logic.js";
 
 const DB      = window.__DB_URL      ?? "";
+const EVENTS  = window.__EVENTS_URL  ?? "";
 const CONTEXT = window.__CONTEXT_URL ?? "";
 const APP_ID  = window.__APP_ID ?? "almanac";
 const ME      = window.__CURRENT_MEMBER ?? null;
@@ -500,6 +501,21 @@ window.syncEmojiPicker = function() {
 // Track which panels need a rebuild; skip re-rendering unchanged tabs
 const dirtyPanels = new Set(["events", "history"]);
 function markDirty() { dirtyPanels.add("events"); dirtyPanels.add("history"); }
+
+/** Best-effort publish onto the household event bus. The observation is already
+ *  written, so a failed publish is not fatal and must never undo it. */
+async function publishEvent(type, subjectId, payload = {}) {
+  if (!EVENTS) return;
+  try {
+    await fetch(EVENTS, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, subject_id: subjectId, payload }),
+    });
+  } catch {
+    /* ignore */
+  }
+}
 
 async function db(sql, params = []) {
   if (!DB) return { rows: [] };
@@ -939,7 +955,15 @@ window.submitLogObservation = async function() {
     `INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, eventTypeId, date, yr, doy, notes, ME?.id ?? "system", now]
-  ).catch(() => {
+  ).then(() => {
+    publishEvent("almanac.observation_logged", id, {
+      event_type_id: eventTypeId,
+      event_type: eventTypes.find(t => t.id === eventTypeId)?.name ?? null,
+      observed_date: date,
+      year: yr,
+      day_of_year: doy,
+    });
+  }).catch(() => {
     observations = observations.filter(o => o.id !== id);
     markDirty();
     render();

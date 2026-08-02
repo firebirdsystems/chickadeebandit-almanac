@@ -37,6 +37,23 @@
     "observations": { "column": "logged_by", "on_removed": "keep" }
   },
   "nav": { "label": "Almanac" },
+  "glance": {
+    "source": {
+      "kind": "sql",
+      "query": "SELECT t.name AS title, t.icon AS icon, CAST(o.year AS TEXT) AS subtitle, o.observed_date AS at FROM app_almanac__observations o JOIN app_almanac__event_types t ON t.id = o.event_type_id WHERE substr(o.observed_date, 6, 5) = substr(:today, 6, 5) AND o.observed_date <> :today ORDER BY o.observed_date DESC LIMIT 3"
+    },
+    "display": {
+      "template": "list",
+      "title": "title",
+      "subtitle": "subtitle",
+      "icon": "icon",
+      "when": "at"
+    }
+  },
+  "publishes": ["almanac.observation_logged"],
+  "publish_acls": {
+    "almanac.observation_logged": { "require_role": "member" }
+  },
   "widget": { "label": "Almanac", "size": "small", "entrypoint": "widget.html" },
   "icon": "📅",
   "db_plaintext_columns": ["observed_date"],
