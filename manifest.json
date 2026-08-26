@@ -17,6 +17,10 @@
     "requires_approval": false
   },
   "storage": "db",
+  "preload": {
+    "event_types": {"sql": "SELECT id, name, icon, description, created_by, created_at, archived_at FROM app_almanac__event_types"},
+    "observations": {"sql": "SELECT id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at FROM app_almanac__observations ORDER BY observed_date DESC"}
+  },
   "db_encryption": "off",
   "row_policies": {
     "event_types": {
