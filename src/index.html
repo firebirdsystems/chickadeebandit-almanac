@@ -439,11 +439,11 @@
 </div>
 
 <script type="module">
-import { esc, memberColor, initial, hubConfirm, searchMatch } from "/hub-sdk.js";
+import { esc, memberColor, initial, hubConfirm, searchMatch, hubToday } from "/hub-sdk.js";
 import {
   dayOfYear, dayOfYearToDate, formatDate,
   averageDayOfYear, compareToAverage,
-  thisYear, todayStr, searchableFields,
+  thisYear, searchableFields,
 } from "./logic.js";
 
 const DB      = window.__DB_URL      ?? "";
@@ -909,7 +909,7 @@ window.openEventDetail = function(id) {
 // ── Log Observation Modal ──────────────────────────────────────────────────────
 
 window.openLogModal = function(preselectedId) {
-  const today = todayStr();
+  const today = hubToday();
   const options = eventTypes
     .map(et => `<option value="${esc(et.id)}"${et.id === preselectedId ? " selected" : ""}>${esc(et.icon)} ${esc(et.name)}</option>`)
     .join("");
