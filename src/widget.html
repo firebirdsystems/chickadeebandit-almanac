@@ -10,8 +10,8 @@
     body {
       font-family: var(--hub-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
       font-size: 13px;
-      background: #fff;
-      color: #111827;
+      background: var(--hub-surface, #fff);
+      color: var(--hub-text, #111827);
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -27,7 +27,7 @@
       flex-shrink: 0;
     }
     .header-title { font-weight: 600; font-size: 13px; }
-    .header-sub { font-size: 11px; color: #6b7280; }
+    .header-sub { font-size: 11px; color: var(--hub-text-muted, #6b7280); }
 
     .list { flex: 1; overflow-y: auto; }
 
@@ -40,12 +40,12 @@
       cursor: pointer;
     }
     .row:last-child { border-bottom: none; }
-    .row:hover { background: #f9fafb; }
+    .row:hover { background: var(--hub-bg, #f9fafb); }
 
     .row-icon { font-size: 16px; flex-shrink: 0; line-height: 1; }
     .row-info { flex: 1; min-width: 0; }
     .row-name { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .row-date { font-size: 11px; color: #6b7280; margin-top: 1px; }
+    .row-date { font-size: 11px; color: var(--hub-text-muted, #6b7280); margin-top: 1px; }
 
     .badge {
       font-size: 10px;
@@ -55,9 +55,9 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .badge-soon { background: #fef3c7; color: #92400e; }
-    .badge-today { background: #dcfce7; color: #166534; }
-    .badge-logged { background: #f0fdf4; color: #16a34a; }
+    .badge-soon { background: var(--hub-tint-warning, #fef3c7); color: var(--hub-tint-warning-fg, #92400e); }
+    .badge-today { background: var(--hub-tint-success, #dcfce7); color: var(--hub-tint-success-fg, #166534); }
+    .badge-logged { background: var(--hub-tint-success, #f0fdf4); color: var(--hub-tint-success-fg, #16a34a); }
 
     .footer {
       padding: 6px 14px;
@@ -66,9 +66,9 @@
       align-items: center;
       justify-content: flex-end;
       flex-shrink: 0;
-      background: #f9fafb;
+      background: var(--hub-bg, #f9fafb);
     }
-    .open-link { font-size: 11px; font-weight: 600; color: #111827; text-decoration: none; }
+    .open-link { font-size: 11px; font-weight: 600; color: var(--hub-text, #111827); text-decoration: none; }
     .open-link:hover { text-decoration: underline; }
 
     .empty {
