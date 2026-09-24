@@ -1,0 +1,122 @@
+{
+  "scenarios": [
+    {
+      "name": "a child can log and edit their own observation but cannot edit or delete another member's",
+      "members": { "parent": "adult", "kid": "child" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at, visibility) VALUES ('et1', 'First frost', '❄️', '', ?, '2026-01-01T00:00:00Z', 'everyone')",
+          "params": ["{{parent}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at, visibility) VALUES ('o_parent', 'et1', '2025-11-02', 2025, 306, 'crunchy lawn', ?, '2025-11-02T08:00:00Z', 'everyone')",
+          "params": ["{{parent}}"]
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at, visibility) VALUES ('o_kid', 'et1', '2025-11-03', 2025, 307, 'ice on the pond', ?, '2025-11-03T08:00:00Z', 'everyone')",
+          "params": ["{{kid}}"],
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "UPDATE app_almanac__observations SET notes = 'thin ice on the pond' WHERE id = 'o_kid'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "UPDATE app_almanac__observations SET notes = 'hacked' WHERE id = 'o_parent'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "DELETE FROM app_almanac__observations WHERE id = 'o_parent'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "parent",
+          "sql": "SELECT id, notes FROM app_almanac__observations",
+          "expect": {
+            "status": 200,
+            "rowCount": 2,
+            "rowsContain": [
+              { "id": "o_parent", "notes": "crunchy lawn" },
+              { "id": "o_kid", "notes": "thin ice on the pond" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "a child cannot delete an adult's event type; an adult can correct a child's observation",
+      "members": { "parent": "adult", "kid": "child" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at, visibility) VALUES ('et1', 'First robin', '🐦', '', ?, '2026-01-01T00:00:00Z', 'everyone')",
+          "params": ["{{parent}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at, visibility) VALUES ('o_kid', 'et1', '2026-03-10', 2026, 69, 'robim', ?, '2026-03-10T08:00:00Z', 'everyone')",
+          "params": ["{{kid}}"]
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "DELETE FROM app_almanac__event_types WHERE id = 'et1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "parent",
+          "sql": "UPDATE app_almanac__observations SET notes = 'robin' WHERE id = 'o_kid'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "SELECT e.id, o.notes FROM app_almanac__event_types e JOIN app_almanac__observations o ON o.event_type_id = e.id",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "et1", "notes": "robin" }] }
+        }
+      ]
+    },
+    {
+      "name": "observations_history export joins event names and hides another member's private observation",
+      "members": { "author": "adult", "other": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at, visibility) VALUES ('et1', 'First bloom', '🌸', '', ?, '2026-01-01T00:00:00Z', 'everyone')",
+          "params": ["{{author}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at, visibility) VALUES ('o_pub', 'et1', '2026-04-01', 2026, 91, 'crocus', ?, '2026-04-01T08:00:00Z', 'everyone'), ('o_priv', 'et1', '2026-04-05', 2026, 95, 'secret spot', ?, '2026-04-05T08:00:00Z', 'private')",
+          "params": ["{{author}}", "{{author}}"]
+        },
+        {
+          "action": "named",
+          "as": "other",
+          "kind": "query",
+          "name": "observations_history",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "o_pub", "event_name": "First bloom" }] }
+        },
+        {
+          "action": "named",
+          "as": "author",
+          "kind": "query",
+          "name": "observations_history",
+          "expect": { "status": 200, "rowCount": 2, "rowsContain": [{ "id": "o_priv" }, { "id": "o_pub" }] }
+        }
+      ]
+    }
+  ]
+}
