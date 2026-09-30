@@ -117,6 +117,126 @@
           "expect": { "status": 200, "rowCount": 2, "rowsContain": [{ "id": "o_priv" }, { "id": "o_pub" }] }
         }
       ]
+    },
+    {
+      "name": "in a shared space only the steward edits or removes another member's event types and observations; a participant adult cannot",
+      "context": "shared_space",
+      "members": { "a": "adult", "b": "adult", "steward": "admin" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at, visibility) VALUES ('et1', 'First frost', '❄️', '', ?, '2026-01-01T00:00:00Z', 'everyone'), ('et2', 'First robin', '🐦', '', ?, '2026-01-01T00:00:00Z', 'everyone')",
+          "params": ["{{b}}", "{{b}}"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at, visibility) VALUES ('o1', 'et1', '2025-11-02', 2025, 306, 'crunchy lawn', ?, '2025-11-02T08:00:00Z', 'everyone'), ('o2', 'et1', '2025-11-03', 2025, 307, 'pond ice', ?, '2025-11-03T08:00:00Z', 'everyone')",
+          "params": ["{{b}}", "{{b}}"]
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "UPDATE app_almanac__event_types SET name = 'hijacked' WHERE id = 'et1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "DELETE FROM app_almanac__event_types WHERE id = 'et2'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "UPDATE app_almanac__observations SET notes = 'hijacked' WHERE id = 'o1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "DELETE FROM app_almanac__observations WHERE id = 'o2'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT id, name FROM app_almanac__event_types ORDER BY id",
+          "expect": {
+            "status": 200,
+            "rowCount": 2,
+            "rowsContain": [{ "id": "et1", "name": "First frost" }, { "id": "et2" }]
+          }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT id, notes FROM app_almanac__observations ORDER BY id",
+          "expect": {
+            "status": 200,
+            "rowCount": 2,
+            "rowsContain": [{ "id": "o1", "notes": "crunchy lawn" }, { "id": "o2" }]
+          }
+        },
+        {
+          "action": "db",
+          "as": "steward",
+          "sql": "UPDATE app_almanac__event_types SET name = 'First hard frost' WHERE id = 'et1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "steward",
+          "sql": "DELETE FROM app_almanac__event_types WHERE id = 'et2'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "steward",
+          "sql": "UPDATE app_almanac__observations SET notes = 'frosty lawn' WHERE id = 'o1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "steward",
+          "sql": "DELETE FROM app_almanac__observations WHERE id = 'o2'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT id, name FROM app_almanac__event_types",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "et1", "name": "First hard frost" }] }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT id, notes FROM app_almanac__observations",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "o1", "notes": "frosty lawn" }] }
+        }
+      ]
+    },
+    {
+      "name": "in a household any adult edits another member's event type",
+      "members": { "a": "adult", "b": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at, visibility) VALUES ('et1', 'First frost', '❄️', '', ?, '2026-01-01T00:00:00Z', 'everyone'), ('et2', 'First robin', '🐦', '', ?, '2026-01-01T00:00:00Z', 'everyone')",
+          "params": ["{{b}}", "{{b}}"]
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "UPDATE app_almanac__event_types SET name = 'First hard frost' WHERE id = 'et1'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "b",
+          "sql": "SELECT name FROM app_almanac__event_types WHERE id = 'et1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "name": "First hard frost" }] }
+        }
+      ]
     }
   ]
 }
