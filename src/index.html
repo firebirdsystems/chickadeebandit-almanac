@@ -406,7 +406,7 @@
       gap: 10px;
       color: var(--hub-text-muted, #6b7280);
     }
-    .empty-icon { font-size: 2.5rem; }
+    .empty-icon { margin-bottom: 8px; }
     .empty-title { font-size: 1rem; font-weight: 600; color: var(--hub-text, #000000); }
     .empty-sub { font-size: 0.88rem; max-width: 320px; line-height: 1.5; }
     .search-row { margin-bottom: 12px; }
@@ -421,8 +421,8 @@
 <body>
 
 <div class="app-header">
-  <h1>📅 Almanac</h1>
-  <button class="btn-gear" onclick="window.openManageModal()" title="Manage event types">⚙</button>
+  <h1><span id="page-glyph"></span> Almanac</h1>
+  <button class="btn-gear" onclick="window.openManageModal()" title="Manage event types" aria-label="Manage event types" id="gear-btn"></button>
 </div>
 
 <div class="tabs">
@@ -439,7 +439,10 @@
 </div>
 
 <script type="module">
-import { esc, memberColor, initial, hubConfirm, searchMatch, hubToday } from "/hub-sdk.js";
+import { esc, memberColor, initial, hubConfirm, searchMatch, hubToday, glyph, chickadee } from "/hub-sdk.js";
+
+document.getElementById("page-glyph").innerHTML = glyph("almanac");
+document.getElementById("gear-btn").innerHTML = glyph("gear");
 import {
   dayOfYear, dayOfYearToDate, formatDate,
   averageDayOfYear, compareToAverage,
@@ -659,9 +662,9 @@ function renderEvents() {
   if (eventTypes.length === 0) {
     panel.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📅</div>
+        <div class="empty-icon">${chickadee("nest")}</div>
         <div class="empty-title">No events tracked yet</div>
-        <div class="empty-sub">Click ⚙ to add your first event — things like "First Frost" or "Roses in Bloom".</div>
+        <div class="empty-sub">Click ${glyph("gear")} to add your first event — things like "First Frost" or "Roses in Bloom".</div>
       </div>`;
     return;
   }
@@ -685,7 +688,7 @@ function renderEventCard(et, yr, obsByType) {
   let thisYrHtml;
   if (thisYrObs.length > 0) {
     const dates = thisYrObs.map(o => formatDate(o.observed_date)).join(" &amp; ");
-    thisYrHtml = `<div class="card-this-year logged">✓ ${dates}</div>`;
+    thisYrHtml = `<div class="card-this-year logged">${glyph("tick")} ${dates}</div>`;
   } else {
     thisYrHtml = `<div class="card-this-year pending">Not yet logged this year</div>`;
   }
@@ -728,7 +731,7 @@ function renderHistory() {
   if (observations.length === 0) {
     panel.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📋</div>
+        <div class="empty-icon">${chickadee("nest")}</div>
         <div class="empty-title">No observations yet</div>
         <div class="empty-sub">Log seasonal events from the Events tab to start building your almanac.</div>
       </div>`;
@@ -742,7 +745,7 @@ function renderHistory() {
   if (!shown.length) {
     panel.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">🔍</div>
+        <div class="empty-icon">${chickadee("searching")}</div>
         <div class="empty-title">No observations match "${esc(searchQ)}"</div>
       </div>`;
     return;
@@ -896,7 +899,7 @@ window.openEventDetail = function(id) {
         <div class="modal-title">${esc(et.name)}</div>
         ${et.description ? `<div class="modal-subtitle">${esc(et.description)}</div>` : ""}
       </div>
-      <button class="btn-close" onclick="closeModal()">✕</button>
+      <button class="btn-close" onclick="closeModal()" aria-label="Close">${glyph("close")}</button>
     </div>
     ${statsHtml}
     <div class="modal-actions-top">
@@ -917,7 +920,7 @@ window.openLogModal = function(preselectedId) {
   openModal(`
     <div class="modal-header">
       <div class="modal-title">Log Observation</div>
-      <button class="btn-close" onclick="closeModal()">✕</button>
+      <button class="btn-close" onclick="closeModal()" aria-label="Close">${glyph("close")}</button>
     </div>
     <div class="form-body">
       <label class="form-label">Event</label>
@@ -1007,15 +1010,15 @@ window.openManageModal = function() {
           <span class="manage-icon">${esc(et.icon)}</span>
           <span class="manage-name">${esc(et.name)}</span>
           <div class="manage-actions">
-            <button class="btn-icon-sm" data-action="edit-type" data-id="${esc(et.id)}" title="Edit">✏</button>
-            <button class="btn-icon-sm danger" data-action="archive-type" data-id="${esc(et.id)}" title="Remove">✕</button>
+            <button class="btn-icon-sm" data-action="edit-type" data-id="${esc(et.id)}" title="Edit" aria-label="Edit">${glyph("pencil")}</button>
+            <button class="btn-icon-sm danger" data-action="archive-type" data-id="${esc(et.id)}" title="Remove" aria-label="Remove">${glyph("close")}</button>
           </div>
         </div>`).join("");
 
   openModal(`
     <div class="modal-header">
       <div class="modal-title">Manage Events</div>
-      <button class="btn-close" onclick="closeModal()">✕</button>
+      <button class="btn-close" onclick="closeModal()" aria-label="Close">${glyph("close")}</button>
     </div>
     <div class="manage-list">${rows}</div>
     <div class="modal-actions">
@@ -1028,7 +1031,7 @@ window.openAddEventTypeModal = function() {
   openModal(`
     <div class="modal-header">
       <div class="modal-title">Add Event Type</div>
-      <button class="btn-close" onclick="closeModal()">✕</button>
+      <button class="btn-close" onclick="closeModal()" aria-label="Close">${glyph("close")}</button>
     </div>
     <div class="form-body">
       <label class="form-label">Icon (emoji)</label>
@@ -1082,7 +1085,7 @@ window.openEditEventTypeModal = function(id) {
   openModal(`
     <div class="modal-header">
       <div class="modal-title">Edit Event Type</div>
-      <button class="btn-close" onclick="closeModal()">✕</button>
+      <button class="btn-close" onclick="closeModal()" aria-label="Close">${glyph("close")}</button>
     </div>
     <div class="form-body">
       <label class="form-label">Icon (emoji)</label>

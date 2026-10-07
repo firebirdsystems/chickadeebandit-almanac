@@ -87,6 +87,7 @@
 </head>
 <body>
 <script type="module">
+import { glyph } from "/hub-sdk.js";
 const DB     = window.__DB_URL ?? "";
 const APP_ID = "almanac";
 
@@ -174,7 +175,7 @@ async function load() {
   if (upcoming.length === 0) {
     document.body.innerHTML = `
       <div class="header">
-        <span class="header-title">📅 Almanac</span>
+        <span class="header-title">${glyph("almanac")} Almanac</span>
         <span class="header-sub">Coming up</span>
       </div>
       <div class="empty">Nothing expected in the next ${WINDOW} days based on history</div>
@@ -187,7 +188,7 @@ async function load() {
   const rows = upcoming.map(et => {
     let badge;
     if (et.loggedThisYear) {
-      badge = `<span class="badge badge-logged">✓ logged</span>`;
+      badge = `<span class="badge badge-logged">${glyph("tick")} logged</span>`;
     } else if (et.daysUntil === 0) {
       badge = `<span class="badge badge-today">today</span>`;
     } else {
@@ -207,7 +208,7 @@ async function load() {
 
   document.body.innerHTML = `
     <div class="header">
-      <span class="header-title">📅 Almanac</span>
+      <span class="header-title">${glyph("almanac")} Almanac</span>
       <span class="header-sub">Coming up</span>
     </div>
     <div class="list">${rows}</div>
