@@ -87,7 +87,7 @@
 </head>
 <body>
 <script type="module">
-import { glyph } from "/hub-sdk.js";
+import { glyph, hubOpen } from "/hub-sdk.js";
 const DB     = window.__DB_URL ?? "";
 const APP_ID = "almanac";
 
@@ -132,12 +132,10 @@ function daysUntilDoy(doy) {
   return diff;
 }
 
+// Widget frames have no popups, so the hub does the navigating: hubOpen asks
+// the parent to open the app with these params (`/open/almanac?eventTypeId=…`).
 function openApp(eventTypeId) {
-  if (window.__HUB_OPEN) {
-    window.parent.postMessage({ type: "hub:open", appId: APP_ID, params: { eventTypeId } }, "*");
-  } else {
-    window.open(`/open/${APP_ID}?eventTypeId=${encodeURIComponent(eventTypeId)}`, "_blank");
-  }
+  hubOpen(APP_ID, { eventTypeId });
 }
 
 // Delegated row clicks: openApp is module-scoped, so inline on* handlers can't

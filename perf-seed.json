@@ -1,0 +1,286 @@
+{
+ "seed": [
+  {
+   "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1500 days'))",
+   "params": [
+    "et-frost",
+    "First Frost",
+    "❄️",
+    "First hard frost of autumn",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1480 days'))",
+   "params": [
+    "et-robin",
+    "First Robin",
+    "🐦",
+    "First robin on the back lawn",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1460 days'))",
+   "params": [
+    "et-tomato",
+    "First Ripe Tomato",
+    "🍅",
+    "First tomato picked from the garden",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1440 days'))",
+   "params": [
+    "et-leaves",
+    "First Leaves Turning",
+    "🍂",
+    "First autumn color in the maple out front",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1420 days'))",
+   "params": [
+    "et-firefly",
+    "First Firefly",
+    "✨",
+    "First firefly sighting of summer",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__event_types (id, name, icon, description, created_by, created_at) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1400 days'))",
+   "params": [
+    "et-geese",
+    "Geese Heading South",
+    "🪿",
+    "First big V of geese overhead",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-2 days'), CAST(strftime('%Y','now','-2 days') AS INTEGER), CAST(strftime('%j','now','-2 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'))",
+   "params": [
+    "ob-1",
+    "et-frost",
+    "Windshield iced over this morning",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-361 days'), CAST(strftime('%Y','now','-361 days') AS INTEGER), CAST(strftime('%j','now','-361 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-361 days'))",
+   "params": [
+    "ob-2",
+    "et-frost",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-733 days'), CAST(strftime('%Y','now','-733 days') AS INTEGER), CAST(strftime('%j','now','-733 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-733 days'))",
+   "params": [
+    "ob-3",
+    "et-frost",
+    "Early this year",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-1090 days'), CAST(strftime('%Y','now','-1090 days') AS INTEGER), CAST(strftime('%j','now','-1090 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1090 days'))",
+   "params": [
+    "ob-4",
+    "et-frost",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-1462 days'), CAST(strftime('%Y','now','-1462 days') AS INTEGER), CAST(strftime('%j','now','-1462 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1462 days'))",
+   "params": [
+    "ob-5",
+    "et-frost",
+    "Killed the basil overnight",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-200 days'), CAST(strftime('%Y','now','-200 days') AS INTEGER), CAST(strftime('%j','now','-200 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-200 days'))",
+   "params": [
+    "ob-6",
+    "et-robin",
+    "Two of them by the feeder",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-571 days'), CAST(strftime('%Y','now','-571 days') AS INTEGER), CAST(strftime('%j','now','-571 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-571 days'))",
+   "params": [
+    "ob-7",
+    "et-robin",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-930 days'), CAST(strftime('%Y','now','-930 days') AS INTEGER), CAST(strftime('%j','now','-930 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-930 days'))",
+   "params": [
+    "ob-8",
+    "et-robin",
+    "Late spring",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-1301 days'), CAST(strftime('%Y','now','-1301 days') AS INTEGER), CAST(strftime('%j','now','-1301 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1301 days'))",
+   "params": [
+    "ob-9",
+    "et-robin",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-85 days'), CAST(strftime('%Y','now','-85 days') AS INTEGER), CAST(strftime('%j','now','-85 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-85 days'))",
+   "params": [
+    "ob-10",
+    "et-tomato",
+    "Sungold, as always",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-455 days'), CAST(strftime('%Y','now','-455 days') AS INTEGER), CAST(strftime('%j','now','-455 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-455 days'))",
+   "params": [
+    "ob-11",
+    "et-tomato",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-812 days'), CAST(strftime('%Y','now','-812 days') AS INTEGER), CAST(strftime('%j','now','-812 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-812 days'))",
+   "params": [
+    "ob-12",
+    "et-tomato",
+    "Cherry tomatoes beat the beefsteaks",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-1185 days'), CAST(strftime('%Y','now','-1185 days') AS INTEGER), CAST(strftime('%j','now','-1185 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1185 days'))",
+   "params": [
+    "ob-13",
+    "et-tomato",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-12 days'), CAST(strftime('%Y','now','-12 days') AS INTEGER), CAST(strftime('%j','now','-12 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days'))",
+   "params": [
+    "ob-14",
+    "et-leaves",
+    "Top of the maple went red",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-365 days'), CAST(strftime('%Y','now','-365 days') AS INTEGER), CAST(strftime('%j','now','-365 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-365 days'))",
+   "params": [
+    "ob-15",
+    "et-leaves",
+    "Same day as last year",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-730 days'), CAST(strftime('%Y','now','-730 days') AS INTEGER), CAST(strftime('%j','now','-730 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-730 days'))",
+   "params": [
+    "ob-16",
+    "et-leaves",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-1096 days'), CAST(strftime('%Y','now','-1096 days') AS INTEGER), CAST(strftime('%j','now','-1096 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1096 days'))",
+   "params": [
+    "ob-17",
+    "et-leaves",
+    "Early due to drought",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-1461 days'), CAST(strftime('%Y','now','-1461 days') AS INTEGER), CAST(strftime('%j','now','-1461 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1461 days'))",
+   "params": [
+    "ob-18",
+    "et-leaves",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-118 days'), CAST(strftime('%Y','now','-118 days') AS INTEGER), CAST(strftime('%j','now','-118 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-118 days'))",
+   "params": [
+    "ob-19",
+    "et-firefly",
+    "By the pond",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-486 days'), CAST(strftime('%Y','now','-486 days') AS INTEGER), CAST(strftime('%j','now','-486 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-486 days'))",
+   "params": [
+    "ob-20",
+    "et-firefly",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-850 days'), CAST(strftime('%Y','now','-850 days') AS INTEGER), CAST(strftime('%j','now','-850 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-850 days'))",
+   "params": [
+    "ob-21",
+    "et-firefly",
+    "Kids caught three in a jar",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-1214 days'), CAST(strftime('%Y','now','-1214 days') AS INTEGER), CAST(strftime('%j','now','-1214 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1214 days'))",
+   "params": [
+    "ob-22",
+    "et-firefly",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-5 days'), CAST(strftime('%Y','now','-5 days') AS INTEGER), CAST(strftime('%j','now','-5 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-5 days'))",
+   "params": [
+    "ob-23",
+    "et-geese",
+    "Loud enough to wake the dog",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-372 days'), CAST(strftime('%Y','now','-372 days') AS INTEGER), CAST(strftime('%j','now','-372 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-372 days'))",
+   "params": [
+    "ob-24",
+    "et-geese",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, notes, logged_by, created_at) VALUES (?, ?, date('now','-741 days'), CAST(strftime('%Y','now','-741 days') AS INTEGER), CAST(strftime('%j','now','-741 days') AS INTEGER), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-741 days'))",
+   "params": [
+    "ob-25",
+    "et-geese",
+    "Three flocks in one afternoon",
+    "{{me}}"
+   ]
+  },
+  {
+   "sql": "INSERT INTO app_almanac__observations (id, event_type_id, observed_date, year, day_of_year, logged_by, created_at) VALUES (?, ?, date('now','-1101 days'), CAST(strftime('%Y','now','-1101 days') AS INTEGER), CAST(strftime('%j','now','-1101 days') AS INTEGER), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1101 days'))",
+   "params": [
+    "ob-26",
+    "et-geese",
+    "{{me}}"
+   ]
+  }
+ ]
+}
