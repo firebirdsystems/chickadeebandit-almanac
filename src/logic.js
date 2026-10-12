@@ -92,3 +92,22 @@ export function todayStr() {
 export function searchableFields(observation, typeName = "") {
   return [observation.notes, typeName];
 }
+
+function isAdultMember(member) {
+  return !!member && (member.role === "adult" || member.role === "admin");
+}
+
+/**
+ * Whether a member may change an event type or observation someone else
+ * added. Mirrors the hub's rule for both tables (owner_or_visibility): any
+ * adult in a household, and only the steward in a shared space. Anyone else's
+ * write to another member's row changes nothing.
+ */
+export function supervisesEntries(member, { tenantKind = "household", isAdmin = false } = {}) {
+  return tenantKind === "household" ? isAdultMember(member) : isAdmin === true;
+}
+
+/** Whoever added an entry may always change it; so may whoever supervises entries. */
+export function canManageEntry(ownerId, member, tenant) {
+  return !!member && (ownerId === member.id || supervisesEntries(member, tenant));
+}

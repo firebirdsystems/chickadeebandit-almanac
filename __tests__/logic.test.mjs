@@ -7,7 +7,7 @@ import {
   daysUntilDoy,
   compareToAverage,
   thisYear,
-  todayStr, searchableFields,
+  todayStr, searchableFields, supervisesEntries, canManageEntry,
 } from "../src/logic.js";
 
 describe("dayOfYear", () => {
@@ -150,5 +150,35 @@ describe("searchableFields", () => {
     const fields = searchableFields({ notes: "in the pond by the gate" }, "First frogspawn");
     expect(fields).toContain("in the pond by the gate");
     expect(fields).toContain("First frogspawn");
+  });
+});
+
+describe("who may change an entry", () => {
+  const adult = { id: "a1", role: "adult" };
+  const child = { id: "c1", role: "child" };
+  const participant = { tenantKind: "shared_space", spaceKind: "general", isAdmin: false };
+  const steward = { tenantKind: "shared_space", spaceKind: "general", isAdmin: true };
+  const coparent = { tenantKind: "shared_space", spaceKind: "coparenting", isAdmin: true };
+
+  it("supervises: any adult at home, only the steward in a shared space", () => {
+    expect(supervisesEntries(adult)).toBe(true);
+    expect(supervisesEntries(child)).toBe(false);
+    expect(supervisesEntries(null)).toBe(false);
+    expect(supervisesEntries(adult, participant)).toBe(false);
+    expect(supervisesEntries(adult, steward)).toBe(true);
+    expect(supervisesEntries(adult, coparent)).toBe(true);
+  });
+
+  it("whoever added an entry may change it, whatever their role", () => {
+    expect(canManageEntry("c1", child)).toBe(true);
+    expect(canManageEntry("a1", adult, participant)).toBe(true);
+  });
+
+  it("someone else's entry needs supervision", () => {
+    expect(canManageEntry("other", adult)).toBe(true);
+    expect(canManageEntry("other", child)).toBe(false);
+    expect(canManageEntry("other", adult, participant)).toBe(false);
+    expect(canManageEntry("other", adult, steward)).toBe(true);
+    expect(canManageEntry("other", null)).toBe(false);
   });
 });

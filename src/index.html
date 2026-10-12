@@ -410,6 +410,9 @@
     .empty-title { font-size: 1rem; font-weight: 600; color: var(--hub-text, #000000); }
     .empty-sub { font-size: 0.88rem; max-width: 320px; line-height: 1.5; }
     .search-row { margin-bottom: 12px; }
+    .load-error { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--hub-tint-danger, #fee2e2); color: var(--hub-tint-danger-fg, #b91c1c); font-size: 0.9rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+    .load-error-retry { background: none; border: 1px solid currentColor; border-radius: 8px; padding: 5px 10px; font: inherit; font-weight: 600; color: inherit; cursor: pointer; flex-shrink: 0; }
+    .load-error[hidden] { display: none; }
     .search-input {
       width: 100%; border: 1.5px solid var(--border-mid, var(--border, #d1d5db));
       border-radius: 8px; padding: 9px 11px; font: inherit;
@@ -430,6 +433,8 @@
   <button class="tab-btn" data-tab="history" onclick="setTab('history')">History</button>
 </div>
 
+<div class="load-error" data-testid="load-error" role="alert" id="load-error" hidden><span>Couldn’t load your almanac.</span> <button type="button" class="load-error-retry" data-testid="load-retry">Try again</button></div>
+
 <div id="panel-events" class="tab-panel active"></div>
 <div id="panel-history" class="tab-panel">
   <div class="search-row" id="search-row" style="display:none">
@@ -446,7 +451,7 @@ document.getElementById("gear-btn").innerHTML = glyph("gear");
 import {
   dayOfYear, dayOfYearToDate, formatDate,
   averageDayOfYear, compareToAverage,
-  thisYear, searchableFields,
+  thisYear, searchableFields, canManageEntry,
 } from "./logic.js";
 
 const DB      = window.__DB_URL      ?? "";
@@ -454,6 +459,14 @@ const EVENTS  = window.__EVENTS_URL  ?? "";
 const CONTEXT = window.__CONTEXT_URL ?? "";
 const APP_ID  = window.__APP_ID ?? "almanac";
 const ME      = window.__CURRENT_MEMBER ?? null;
+const TENANT  = {
+  tenantKind: window.__TENANT_KIND ?? "household",
+  spaceKind: window.__SPACE_KIND ?? null,
+  isAdmin: window.__IS_ADMIN === true,
+};
+// Whether the viewer may change a row added by `ownerId`. Without a hub
+// (demo mode) there is no member and nothing is refused.
+const canManage = ownerId => !DB || canManageEntry(ownerId, ME, TENANT);
 
 let members    = [];
 let memberMap  = new Map();
@@ -527,8 +540,17 @@ async function db(sql, params = []) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),
   });
-  if (!res.ok) throw new Error(`db request failed: ${res.status}`);
-  return res.json();
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json || typeof json !== "object" || json.error) throw new Error(json?.error || "Couldn’t reach the hub. Try again.");
+  return json;
+}
+
+// A change to a row the hub won't let the caller touch still answers 200 with
+// nothing changed, so that counts as a failure too.
+async function change(sql, params) {
+  const res = await db(sql, params);
+  if (DB && !res.changed) throw new Error("nothing changed");
+  return res;
 }
 
 // Lightweight transient toast for surfacing failed optimistic writes.
@@ -571,10 +593,13 @@ async function loadMembers() {
     memberMap = new Map(members.map(m => [m.id, m]));
     return;
   }
-  try {
-    const res = await fetch(`${CONTEXT}?keys=family.members`);
-    members = ((await res.json())["family.members"]) ?? [];
-  } catch { members = []; }
+  // A roster that cannot be read is a failed load, not an empty household.
+  const res = await fetch(`${CONTEXT}?keys=family.members`);
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json || typeof json !== "object") throw new Error("Couldn’t reach the hub. Try again.");
+  // A 200 can still name a key the hub failed to read: that is a failed read too.
+  if (Array.isArray(json.$errors) && json.$errors.includes("family.members")) throw new Error("Couldn’t reach the hub. Try again.");
+  members = json["family.members"] ?? [];
   memberMap = new Map(members.map(m => [m.id, m]));
 }
 
@@ -659,6 +684,7 @@ function renderEvents() {
   const yr    = thisYear();
   const panel = document.getElementById("panel-events");
 
+  if (loadFailed) { panel.innerHTML = ""; return; }
   if (eventTypes.length === 0) {
     panel.innerHTML = `
       <div class="empty-state">
@@ -728,6 +754,7 @@ function renderHistory() {
   const searchRow = document.getElementById("search-row");
   if (searchRow) searchRow.style.display = observations.length ? "" : "none";
 
+  if (loadFailed) { panel.innerHTML = ""; return; }
   if (observations.length === 0) {
     panel.innerHTML = `
       <div class="empty-state">
@@ -780,7 +807,7 @@ function renderHistory() {
           </div>
           <div class="hist-meta">
             <span class="hist-who">${esc(memberName)}</span>
-            <button class="btn-icon-sm danger" data-action="delete-obs" data-id="${esc(obs.id)}" title="Delete">×</button>
+            ${canManage(obs.logged_by) ? `<button class="btn-icon-sm danger" data-action="delete-obs" data-id="${esc(obs.id)}" title="Delete">×</button>` : ""}
           </div>
         </div>`;
     }
@@ -879,7 +906,7 @@ window.openEventDetail = function(id) {
             <td>${cmpHtml}</td>
             <td class="notes-cell">${esc(obs.notes)}</td>
             <td>${esc(memberName)}</td>
-            <td><button class="btn-icon-sm danger" data-action="delete-obs" data-id="${esc(obs.id)}" data-reopen="${esc(id)}" title="Delete">×</button></td>
+            <td>${canManage(obs.logged_by) ? `<button class="btn-icon-sm danger" data-action="delete-obs" data-id="${esc(obs.id)}" data-reopen="${esc(id)}" title="Delete">×</button>` : ""}</td>
           </tr>`;
       }
     }
@@ -977,6 +1004,7 @@ window.submitLogObservation = async function() {
 // ── Delete Observation ─────────────────────────────────────────────────────────
 
 window.deleteObservation = async function(obsId, reopenEventTypeId) {
+  if (!canManage(observations.find(o => o.id === obsId)?.logged_by)) return;
   const confirmed = await hubConfirm({
     message: "Delete this observation?",
     confirmLabel: "Delete",
@@ -992,7 +1020,7 @@ window.deleteObservation = async function(obsId, reopenEventTypeId) {
   render();
   if (reopenEventTypeId) window.openEventDetail(reopenEventTypeId);
 
-  db(`DELETE FROM app_almanac__observations WHERE id = ?`, [obsId]).catch(() => {
+  change(`DELETE FROM app_almanac__observations WHERE id = ?`, [obsId]).catch(() => {
     if (removed) observations.unshift(removed);
     markDirty();
     render();
@@ -1009,10 +1037,10 @@ window.openManageModal = function() {
         <div class="manage-row">
           <span class="manage-icon">${esc(et.icon)}</span>
           <span class="manage-name">${esc(et.name)}</span>
-          <div class="manage-actions">
+          ${canManage(et.created_by) ? `<div class="manage-actions">
             <button class="btn-icon-sm" data-action="edit-type" data-id="${esc(et.id)}" title="Edit" aria-label="Edit">${glyph("pencil")}</button>
             <button class="btn-icon-sm danger" data-action="archive-type" data-id="${esc(et.id)}" title="Remove" aria-label="Remove">${glyph("close")}</button>
-          </div>
+          </div>` : ""}
         </div>`).join("");
 
   openModal(`
@@ -1081,7 +1109,7 @@ window.submitAddEventType = async function() {
 
 window.openEditEventTypeModal = function(id) {
   const et = eventTypes.find(e => e.id === id);
-  if (!et) return;
+  if (!et || !canManage(et.created_by)) return;
   openModal(`
     <div class="modal-header">
       <div class="modal-title">Edit Event Type</div>
@@ -1110,6 +1138,7 @@ window.submitEditEventType = async function(id) {
 
   // Optimistic: update in local eventTypes, close modal, render immediately
   const et = eventTypes.find(e => e.id === id);
+  if (et && !canManage(et.created_by)) return;
   const prev = et ? { name: et.name, icon: et.icon, description: et.description } : null;
   if (et) Object.assign(et, { name, icon, description: desc });
   eventTypes = [...eventTypes].sort((a, b) => a.name.localeCompare(b.name));
@@ -1117,7 +1146,7 @@ window.submitEditEventType = async function(id) {
   markDirty();
   render();
 
-  db(`UPDATE app_almanac__event_types SET name = ?, icon = ?, description = ? WHERE id = ?`, [name, icon, desc, id])
+  change(`UPDATE app_almanac__event_types SET name = ?, icon = ?, description = ? WHERE id = ?`, [name, icon, desc, id])
     .catch(() => {
       if (et && prev) Object.assign(et, prev);
       eventTypes = [...eventTypes].sort((a, b) => a.name.localeCompare(b.name));
@@ -1129,7 +1158,7 @@ window.submitEditEventType = async function(id) {
 
 window.archiveEventType = async function(id) {
   const et = eventTypes.find(e => e.id === id);
-  if (!et) return;
+  if (!et || !canManage(et.created_by)) return;
   const confirmed = await hubConfirm({
     message: `Remove "${et.name}"?`,
     description: "This hides the event type. Existing observations are preserved.",
@@ -1146,7 +1175,7 @@ window.archiveEventType = async function(id) {
   render();
   window.openManageModal();
 
-  db(`UPDATE app_almanac__event_types SET archived_at = ? WHERE id = ?`, [now, id]).catch(() => {
+  change(`UPDATE app_almanac__event_types SET archived_at = ? WHERE id = ?`, [now, id]).catch(() => {
     if (removed) eventTypes = [...eventTypes, removed].sort((a, b) => a.name.localeCompare(b.name));
     markDirty();
     render();
@@ -1165,16 +1194,24 @@ function handleDeepLink() {
 
 // ── Init ───────────────────────────────────────────────────────────────────────
 
-(async () => {
+// True from a failed first load until a load succeeds. While it is, the
+// panels state nothing and event types can't be managed.
+let loadFailed = false;
+async function firstLoad() {
   try {
     await Promise.all([loadMembers(), loadData()]);
+    loadFailed = false;
   } catch {
+    loadFailed = true;
     markDirty();
-    toast("Couldn't load your almanac — please refresh.");
   }
-  handleDeepLink();
+  document.getElementById("load-error").hidden = !loadFailed;
+  document.getElementById("gear-btn").style.display = loadFailed ? "none" : "";
+  if (!loadFailed) handleDeepLink();
   render();
-})();
+}
+document.querySelector('[data-testid="load-retry"]').addEventListener("click", firstLoad);
+firstLoad();
 </script>
 </body>
 </html>
